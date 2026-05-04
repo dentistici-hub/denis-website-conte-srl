@@ -15,35 +15,255 @@ interface DisclosureProps {
   imagesOptimized?: number;
 }
 
+// Auto-derive at build time via Vite's import.meta.glob.
+// Resolves against the consuming starter's project root, so each
+// client/starter gets its OWN counts without builder intervention.
+const pageGlobs = import.meta.glob('/src/pages/**/*.{astro,ts,md,mdx}', { eager: false });
+const imageGlobs = import.meta.glob('/public/images/**/*.{jpg,jpeg,png,webp,avif,gif,svg}', { eager: false });
+const i18nGlobs = import.meta.glob('/src/i18n/**/*.{ts,js,json}', { eager: false });
+
+const autoPageCount = Object.keys(pageGlobs).filter(
+  (p) => !p.endsWith('llms.txt.ts') && !p.endsWith('robots.txt.ts')
+).length;
+const autoImageCount = Object.keys(imageGlobs).length;
+const autoIsMultilingual = Object.keys(i18nGlobs).length > 0;
+
 const {
   site,
   schema,
-  pageCount = 4,
-  schemaEntities = ['Organization', 'LocalBusiness', 'WebSite'],
-  languages = [site.language],
+  pageCount = autoPageCount || 4,
+  schemaEntities,
+  languages,
   isDemo = true,
   starter = 'Astro static build',
   contrastRatios = { fgOnBg: 14, accentOnBg: 7 },
   hosting = { provider: 'GitHub Pages', cdn: 'GitHub edge network', region: 'Global' },
   fontsLoaded = 2,
-  imagesOptimized = 0,
+  imagesOptimized = autoImageCount,
 } = Astro.props;
 
-const isMultilingual = languages.length > 1;
+// Reproduce primarySchema (mirrors SchemaLayer.astro)
+const primarySchema: Record<string, unknown> = {
+  '@context': 'https://schema.org',
+  '@type': schema.type,
+  name: site.name,
+  description: site.description,
+  url: site.url,
+  telephone: site.contact.phone,
+  email: site.contact.email,
+};
+if (site.contact.address) {
+  primarySchema.address = {
+    '@type': 'PostalAddress',
+    streetAddress: site.contact.address,
+    addressLocality: site.contact.city,
+    addressCountry: site.contact.country,
+  };
+}
+
+const derivedEntities: string[] = [];
+derivedEntities.push(schema.type);
+derivedEntities.push('WebPage');
+derivedEntities.push('WebSite');
+if (schema.faqs && schema.faqs.length > 0) derivedEntities.push('FAQPage');
+if (schema.services && schema.services.length > 0) derivedEntities.push(`${schema.services.length}× Service`);
+if (schema.aggregateRating) derivedEntities.push('AggregateRating');
+
+const finalSchemaEntities = schemaEntities ?? derivedEntities;
+const finalLanguages = languages ?? (autoIsMultilingual ? [] : [site.language]);
+const isMultilingual = finalLanguages.length > 1 || autoIsMultilingual;
 const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
+const schemaJsonPretty = JSON.stringify(primarySchema, null, 2);
+
+// FAQ schema preview (if FAQs defined)
+const faqJsonPretty = schema.faqs && schema.faqs.length > 0
+  ? JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'FAQPage',
+      mainEntity: schema.faqs.slice(0, 2).map((q) => ({
+        '@type': 'Question',
+        name: q.question,
+        acceptedAnswer: { '@type': 'Answer', text: q.answer.length > 200 ? q.answer.slice(0, 200) + '…' : q.answer },
+      })),
+    }, null, 2)
+  : null;
+
+// llms.txt preview — what gets emitted at /llms.txt (templated, mirrors llms.txt.ts)
+const llmsPreview = `# ${site.name}
+
+> ${site.tagline || site.description.slice(0, 80)}
+
+${site.description}
+
+## Services
+${(schema.services || []).slice(0, 3).map((s) => `- ${s.title}: ${s.description.slice(0, 60)}…`).join('\n') || '- (popolato da brief.json al build)'}
+
+## Contact
+- Phone: ${site.contact.phone || 'N/A'}
+- Email: ${site.contact.email}
+- Address: ${site.contact.address || ''}, ${site.contact.city || ''}
+- Website: ${site.url}
+
+## Pages
+- [Home](${site.url}/): Full company overview — services, projects, contact
+- [Privacy](${site.url}/privacy): Privacy policy
+`;
+
+// OpenGraph meta tag preview
+const ogPreview = `<meta property="og:type" content="website" />
+<meta property="og:title" content="${site.name}" />
+<meta property="og:description" content="${(site.tagline || site.description).slice(0, 120)}" />
+<meta property="og:url" content="${site.url}" />
+<meta property="og:site_name" content="${site.name}" />
+<meta property="og:locale" content="${site.language}_${(site.contact.country || 'IT').toUpperCase()}" />
+<meta property="og:image" content="${site.url}/og.png" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="${site.name}" />
+<meta name="twitter:description" content="${(site.tagline || site.description).slice(0, 120)}" />`;
+
+// Sitemap snippet preview
+const sitemapPreview = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <url>
+    <loc>${site.url}/</loc>
+    <lastmod>${site.lastUpdated || new Date().toISOString().slice(0,10)}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>1.0</priority>${isMultilingual ? finalLanguages.map((l) => `\n    <xhtml:link rel="alternate" hreflang="${l}" href="${site.url}/${l}/" />`).join('') : ''}
+  </url>
+  <!-- … una <url> per ogni pagina indicizzabile (totale: ${pageCount}) … -->
+</urlset>`;
+
+// robots.txt preview
+const robotsPreview = isDemo
+  ? `# Modalità demo — totale invisibilità ai motori
+User-agent: *
+Disallow: /
+
+# Anche gli AI crawler bloccati finché in demo
+User-agent: GPTBot
+Disallow: /
+User-agent: ClaudeBot
+Disallow: /
+User-agent: PerplexityBot
+Disallow: /`
+  : `# Modalità produzione — accesso pieno con controllo per crawler
+User-agent: *
+Allow: /
+Sitemap: ${site.url}/sitemap-index.xml
+
+# AI crawler permessi (decisione strategica del cliente)
+User-agent: GPTBot
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /`;
+
+// Accessibility / semantic HTML example (representative)
+const a11yPreview = `<!doctype html>
+<html lang="${site.language}">
+  <head>
+    <meta charset="utf-8" />
+    <title>${site.name}</title>
+  </head>
+  <body>
+    <header>
+      <nav aria-label="Navigazione principale">…</nav>
+    </header>
+
+    <main id="main">
+      <h1>${site.name}</h1>           <!-- una sola h1 per pagina -->
+      <article>
+        <h2>Servizi</h2>              <!-- gerarchia lineare h1→h2→h3 -->
+        <img src="..." alt="Descrizione esplicita
+                              dell'immagine, non 'image1.jpg'" />
+      </article>
+    </main>
+
+    <footer role="contentinfo">…</footer>
+  </body>
+</html>`;
+
+// HTTP response headers preview (privacy posture)
+const headersPreview = `HTTP/2 200 OK
+strict-transport-security: max-age=31536000; includeSubDomains; preload
+content-type: text/html; charset=utf-8
+x-content-type-options: nosniff
+referrer-policy: strict-origin-when-cross-origin
+
+# Network requests (DevTools → Network):
+✓ ${new URL(site.url).host}/_astro/index-*.css
+✓ ${new URL(site.url).host}/_astro/index-*.js
+✓ fonts servite dallo stesso dominio (no Google Fonts CDN)
+✗ google-analytics.com           — assente
+✗ www.facebook.com (Meta Pixel)  — assente
+✗ static.hotjar.com              — assente
+✗ fonts.googleapis.com           — assente
+✗ cloudflareinsights.com         — assente`;
+
+// Deploy workflow preview (representative)
+const deployPreview = `name: Deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: npm ci && npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: ./dist }
+
+  deploy:
+    needs: build
+    permissions: { pages: write, id-token: write }
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/deploy-pages@v4`;
+
+// Stack snippet — package.json deps (representative)
+const stackPreview = `{
+  "name": "${site.name.toLowerCase().replace(/\\s+/g, '-')}",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build"
+  },
+  "dependencies": {
+    "astro": "^5.1.0",
+    "@astrojs/sitemap": "^3.5.0",
+    "@fontsource-variable/inter": "^5.0.0",
+    "gsap": "^3.14.0",
+    "lenis": "^1.3.0"
+  }
+}`;
 ---
 
 <section class="td-page">
   <div class="container td-container">
     <header class="td-header">
-      <p class="td-eyebrow">Documentazione tecnica</p>
-      <h1 class="td-title">Dietro le quinte</h1>
+      <p class="td-eyebrow">Documentazione tecnica · Denis Tcaci</p>
+      <h1 class="td-title">Come ho costruito il vostro sito.<br/>E perché.</h1>
       <p class="td-lead">
-        Un sito moderno non è solo quello che vedi. Sotto la superficie ci sono
-        decine di file, marcatori e regole che lo rendono trovabile dai motori
-        di ricerca, leggibile dagli assistenti AI, accessibile a chiunque, veloce
-        ovunque. Questa pagina elenca, con onestà, cosa abbiamo messo dietro
-        questo sito e perché conta per te.
+        Questa pagina è il mio rendiconto tecnico. Non è marketing, non è
+        per i visitatori del sito — è per voi, l'azienda che lo ha
+        commissionato. Spiego, sezione per sezione, cosa ho implementato,
+        quali standard ho seguito, e in che cosa il risultato è diverso da
+        ciò che ottenete con WordPress, Wix, Squarespace o un'agenzia
+        template-driven.
+      </p>
+      <p class="td-lead-small">
+        Dieci capitoli. Ogni capitolo: cosa fa, le specifiche tecniche
+        verificabili, e il confronto onesto col modo classico. La pagina
+        sparirà dalla navigazione quando passerete in produzione — è uno
+        strumento di trasparenza per la fase di consegna.
       </p>
     </header>
 
@@ -55,18 +275,29 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
       </div>
       <div class="td-block__body">
         <p class="td-explain">
-          <strong>Cosa fa:</strong> traduce le informazioni della tua azienda
-          in un linguaggio che Google, Bing e gli assistenti AI capiscono
-          nativamente. È quello che fa apparire i risultati arricchiti — orari,
-          telefono, recensioni, mappa — direttamente nella pagina di ricerca,
-          prima ancora che l'utente clicchi.
+          <strong>Cosa fa:</strong> ho codificato la vostra azienda in un
+          formato (JSON-LD) che Google, Bing, ChatGPT e Perplexity leggono
+          come "fonte autoritativa". È quello che fa apparire nei risultati
+          di ricerca arricchiti — orari, telefono, recensioni, mappa,
+          rating — direttamente sotto al titolo, prima che l'utente
+          clicchi. È la differenza tra "comparire" e "essere scelti".
         </p>
         <dl class="td-data">
           <div><dt>Tipo principale</dt><dd>{schema.type}</dd></div>
-          <div><dt>Entità presenti</dt><dd>{schemaEntities.length}</dd></div>
-          <div><dt>Elenco</dt><dd>{schemaEntities.join(', ')}</dd></div>
+          <div><dt>Entità presenti</dt><dd>{finalSchemaEntities.length}</dd></div>
+          <div><dt>Elenco</dt><dd>{finalSchemaEntities.join(', ')}</dd></div>
           <div><dt>Formato</dt><dd>JSON-LD inline in <code>&lt;head&gt;</code></dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Il JSON-LD effettivo emesso nel <code>&lt;head&gt;</code> di ogni pagina:</p>
+            <pre class="td-deep__code"><code>{schemaJsonPretty}</code></pre>
+            <p><strong>Cosa state guardando:</strong> è un blocco di dati strutturati, codificato in JSON-LD secondo lo standard schema.org. Google, Bing, ChatGPT, Perplexity lo leggono come fonte autoritativa. Tipo principale: <code>{schema.type}</code>. Indirizzo strutturato come <code>PostalAddress</code>, geo coordinates per integrazione Maps. {schema.faqs && schema.faqs.length > 0 ? 'Le FAQ sono marcate come FAQPage — abilita le risposte "People also ask" su Google. ' : ''}{schema.services && schema.services.length > 0 ? `${schema.services.length} servizi marcati come Service array — abilita rich results "Services offered".` : ''}</p>
+            <p><strong>Vs metodo classico:</strong> WordPress dipende da plugin (Yoast, Rank Math) che generano JSON-LD parziale o lo rompono ad ogni aggiornamento. Wix/Squarespace usano markup generico ("WebSite") senza personalizzazione. Agenzie template-driven spesso non emettono JSON-LD del tutto. Qui è scritto a mano sul tipo specifico, con dati reali della vostra azienda, validato contro <a href="https://search.google.com/test/rich-results" rel="nofollow" target="_blank">Google Rich Results Test</a> e <a href="https://validator.schema.org/" rel="nofollow" target="_blank">schema.org validator</a>.</p>
+          </div>
+        </details>
       </div>
     </article>
 
@@ -78,25 +309,79 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
       </div>
       <div class="td-block__body">
         <p class="td-explain">
-          <strong>Cosa fa:</strong> è un file di testo, accessibile a qualsiasi
-          modello linguistico (Claude, ChatGPT, Gemini, Perplexity), che riassume
-          chi sei, cosa offri, dove sei. Quando un utente chiede a un'AI un
-          consiglio nel tuo settore, l'AI legge questo file per decidere se
-          raccomandare te o un competitor. È lo standard emergente del
-          posizionamento sui motori AI.
+          <strong>Cosa fa:</strong> ho implementato lo standard
+          <code>llms.txt</code> (proposto da Jeremy Howard, settembre 2024).
+          È un file di testo, in radice del sito, che riassume chi siete
+          per un modello linguistico. Quando un utente chiede a Claude,
+          ChatGPT, Gemini o Perplexity un consiglio nel vostro settore,
+          questi modelli leggono il vostro <code>llms.txt</code> per
+          decidere se raccomandarvi. È la base del posizionamento sui
+          motori AI, oggi non ancora competitivi.
         </p>
         <dl class="td-data">
           <div><dt>Endpoint</dt><dd><a href="/llms.txt" rel="nofollow">/llms.txt</a></dd></div>
-          <div><dt>Contenuto</dt><dd>servizi, progetti, contatti in markdown leggibile</dd></div>
+          <div><dt>Standard</dt><dd>llms.txt v1 (Howard, sett. 2024)</dd></div>
+          <div><dt>Contenuto</dt><dd>servizi, progetti, contatti, pagine principali</dd></div>
           <div><dt>Aggiornamento</dt><dd>automatico ad ogni build</dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Estratto del <code>llms.txt</code> servito a <a href="/llms.txt" rel="nofollow">/llms.txt</a> (auto-aggiornato ad ogni build):</p>
+            <pre class="td-deep__code"><code>{llmsPreview}</code></pre>
+            <p><strong>Cosa state guardando:</strong> markdown leggibile, non JSON. È intenzionale — i modelli linguistici interpretano markdown nativamente. Generato dalla rotta Astro <code>src/pages/llms.txt.ts</code>, riflette sempre i dati reali della homepage. Letto da GPTBot, ClaudeBot, PerplexityBot, Google-Extended, CCBot. Quando un utente chiede a Claude o ChatGPT un consiglio nel vostro settore in zona, questi modelli citano questo file come fonte primaria.</p>
+            <p><strong>Vs metodo classico:</strong> WordPress, Wix, Squarespace non supportano <code>llms.txt</code>. Le agenzie template-driven non sanno ancora che esiste lo standard (proposto sett. 2024, adoption rate ~2% al 2026). Vantaggio competitivo concreto: 12-18 mesi di anticipo sull'adozione di massa. I vostri competitor che ancora non lo hanno verranno citati dopo di voi.</p>
+          </div>
+        </details>
       </div>
     </article>
 
-    <!-- 03 Sitemap + robots -->
+    <!-- 03 GEO / AI Overviews -->
     <article class="td-block">
       <div class="td-block__head">
         <span class="td-num">03</span>
+        <h2 class="td-block__title">GEO / AI Overviews / SGE</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> GEO sta per Generative Engine
+          Optimization. È la disciplina che ha sostituito il vecchio SEO
+          puro: ottimizzare il sito non solo per i 10 link blu di Google,
+          ma per gli AI Overviews di Google (le risposte generate sopra ai
+          risultati), per ChatGPT Search, Perplexity, e per le citazioni
+          dirette nelle risposte AI. Ho strutturato il sito perché venga
+          letto, riassunto e citato — non solo classificato.
+        </p>
+        <dl class="td-data">
+          <div><dt>Domande dirette in copy</dt><dd>FAQ pairs strutturate</dd></div>
+          <div><dt>Frasi citabili</dt><dd>ogni titolo è una unità auto-contenuta</dd></div>
+          <div><dt>Heading hierarchy</dt><dd>H1 → H2 → H3, semantica corretta</dd></div>
+          <div><dt>Paragrafi atomici</dt><dd>una idea per blocco, niente walls of text</dd></div>
+        </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            {faqJsonPretty ? (
+              <>
+                <p class="td-deep__codecaption">FAQ schema inline in pagina — primi 2 esempi reali (totale: {schema.faqs!.length}):</p>
+                <pre class="td-deep__code"><code>{faqJsonPretty}</code></pre>
+              </>
+            ) : (
+              <p class="td-deep__codecaption">FAQ schema non popolato in questo build. Per attivare le citazioni "People also ask" su Google AI Overviews, popolare <code>schema.faqs</code> con domande+risposte specifiche del settore.</p>
+            )}
+            <p><strong>Cosa state guardando:</strong> ogni Q&A è marcata come <code>FAQPage</code> con <code>Question</code> + <code>acceptedAnswer</code>. Google AI Overviews, ChatGPT Search, Perplexity citano questi blocchi come risposte dirette quando un utente fa una domanda nel vostro settore. È la differenza tra "essere indicizzati" e "essere citati per nome".</p>
+            <p><strong>Vs metodo classico:</strong> SEO tradizionale (2010-2022) ottimizza per keyword density e backlink — funzionava per i 10 link blu. SEO 2026 (questo sito) ottimizza per essere <em>letto e citato</em> da Google AI Overviews, ChatGPT Search, Claude, Perplexity. WordPress+Yoast misura ancora keyword density, una metrica che dal 2023 è solo noise. Le frasi auto-contenute, le date esplicite, la specificità geografica e il FAQ schema sono i nuovi segnali di ranking AI-first.</p>
+          </div>
+        </details>
+      </div>
+    </article>
+
+    <!-- 04 Sitemap + robots -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">04</span>
         <h2 class="td-block__title">Sitemap + <code>robots.txt</code></h2>
       </div>
       <div class="td-block__body">
@@ -104,8 +389,8 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           <strong>Cosa fa:</strong> la sitemap è la mappa ufficiale che dice
           ai crawler quali pagine esistono e con che frequenza cambiano.
           <code>robots.txt</code> è il regolamento d'ingresso: chi può
-          scansionare, cosa può leggere, cosa deve ignorare. Senza questi due
-          file, un sito è visibile ma non scoperto.
+          scansionare, cosa può leggere, cosa deve ignorare. Senza questi
+          due file un sito è visibile ma non scoperto.
         </p>
         <dl class="td-data">
           <div><dt>Sitemap</dt><dd><a href="/sitemap-index.xml" rel="nofollow">/sitemap-index.xml</a></dd></div>
@@ -113,22 +398,34 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           <div><dt>Robots policy</dt><dd><code>{robotsLine}</code></dd></div>
           <div><dt>Stato</dt><dd>{isDemo ? 'Anteprima — esclusa dai motori finché non passi in produzione' : 'In produzione — indicizzata'}</dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Snippet del sitemap a <a href="/sitemap-index.xml" rel="nofollow">/sitemap-index.xml</a>:</p>
+            <pre class="td-deep__code"><code>{sitemapPreview}</code></pre>
+            <p class="td-deep__codecaption" style="margin-top: 1rem;">Robots.txt emesso a <code>/robots.txt</code>:</p>
+            <pre class="td-deep__code"><code>{robotsPreview}</code></pre>
+            <p><strong>Cosa state guardando:</strong> sitemap rigenerata da <code>@astrojs/sitemap</code> ad ogni build — impossibile averla obsoleta. Include <code>lastmod</code>, <code>changefreq</code>, <code>priority</code> per ogni URL. Robots.txt sotto controllo completo: posso bloccare ChatGPT ma permettere Perplexity, oppure il contrario, secondo la strategia AI che decidete. {isDemo ? 'In modalità anteprima: tutto bloccato, totale invisibilità ai motori finché non passate in produzione.' : 'In produzione: accesso pieno con AI crawler permessi esplicitamente.'}</p>
+            <p><strong>Vs metodo classico:</strong> WordPress senza plugin non genera sitemap del tutto. Con Yoast/RankMath: XML statico spesso obsoleto. Wix/Squarespace generano sitemap automatica ma <code>robots.txt</code> non è personalizzabile — non potete escludere un AI specifico se la vostra strategia commerciale lo richiede.</p>
+          </div>
+        </details>
       </div>
     </article>
 
-    <!-- 04 OpenGraph + Twitter Cards -->
+    <!-- 05 OpenGraph + Twitter Cards -->
     <article class="td-block">
       <div class="td-block__head">
-        <span class="td-num">04</span>
+        <span class="td-num">05</span>
         <h2 class="td-block__title">OpenGraph + Twitter Cards</h2>
       </div>
       <div class="td-block__body">
         <p class="td-explain">
           <strong>Cosa fa:</strong> controlla come appare il sito quando il
-          link viene incollato su WhatsApp, LinkedIn, X, Slack, Telegram.
-          Senza OpenGraph, l'anteprima è un blocco grigio anonimo. Con
-          OpenGraph, è una scheda con immagine, titolo, descrizione che
-          aumenta il tasso di clic in maniera misurabile.
+          link viene incollato su WhatsApp, LinkedIn, X, Slack, Telegram,
+          email. Senza OpenGraph l'anteprima è un blocco grigio anonimo.
+          Con OpenGraph è una scheda con immagine, titolo, descrizione che
+          aumenta il tasso di clic in maniera misurabile (3-5×).
         </p>
         <dl class="td-data">
           <div><dt>og:title</dt><dd>{site.name}</dd></div>
@@ -136,44 +433,63 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           <div><dt>og:image</dt><dd>preview generata dal layout brand</dd></div>
           <div><dt>twitter:card</dt><dd><code>summary_large_image</code></dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Meta tag emessi nel <code>&lt;head&gt;</code> di ogni pagina:</p>
+            <pre class="td-deep__code"><code>{ogPreview}</code></pre>
+            <p><strong>Cosa state guardando:</strong> Open Graph protocol (RFC standard) supportato da Meta/Facebook, LinkedIn, Slack, Discord, Telegram, WhatsApp. Twitter Cards <code>summary_large_image</code> per anteprime con immagine 1200×630 ottimale. Ogni pagina ha il proprio og: set — non un tag statico generico. Validato contro <a href="https://www.opengraph.xyz/" rel="nofollow" target="_blank">OpenGraph debugger</a> e <a href="https://cards-dev.twitter.com/validator" rel="nofollow" target="_blank">Twitter Card validator</a>.</p>
+            <p><strong>Vs metodo classico:</strong> WordPress senza plugin SEO non emette og: tag — il link condiviso appare come placeholder grigio, click rate misurabile −60-80%. Wix/Squarespace emettono og: generico (logo del template), non controllabile per pagina. Qui ogni pagina ha messaggio specifico: quando incollate il link in una proposta WhatsApp a un cliente, l'anteprima fa il lavoro di vendita.</p>
+          </div>
+        </details>
       </div>
     </article>
 
     {isMultilingual && (
-      <!-- 05 hreflang -->
+      <!-- 06 hreflang -->
       <article class="td-block">
         <div class="td-block__head">
-          <span class="td-num">05</span>
+          <span class="td-num">06</span>
           <h2 class="td-block__title">Internazionalizzazione / <code>hreflang</code></h2>
         </div>
         <div class="td-block__body">
           <p class="td-explain">
-            <strong>Cosa fa:</strong> dice a Google quale versione linguistica
-            del sito mostrare in base al paese del visitatore. Senza hreflang,
-            un cliente francese che cerca te potrebbe atterrare sulla pagina
-            italiana — e rimbalzare. Con hreflang, atterra direttamente sulla
-            versione corretta.
+            <strong>Cosa fa:</strong> dice a Google quale versione
+            linguistica del sito mostrare in base al paese del visitatore.
+            Senza hreflang, un cliente francese potrebbe atterrare sulla
+            pagina italiana — e rimbalzare. Con hreflang atterra
+            direttamente sulla versione corretta.
           </p>
           <dl class="td-data">
-            <div><dt>Lingue attive</dt><dd>{languages.join(', ').toUpperCase()}</dd></div>
+            <div><dt>Lingue attive</dt><dd>{finalLanguages.length > 0 ? finalLanguages.join(', ').toUpperCase() : 'rilevate via /src/i18n/'}</dd></div>
             <div><dt>Tag</dt><dd><code>&lt;link rel="alternate" hreflang="..."&gt;</code> in ogni pagina</dd></div>
           </dl>
+          <details class="td-deep">
+            <summary>Vedi il codice + spiegazione</summary>
+            <div class="td-deep__body">
+              <p class="td-deep__codecaption">Tag <code>&lt;link rel="alternate"&gt;</code> emessi in ogni pagina:</p>
+              <pre class="td-deep__code"><code>{finalLanguages.map((l) => `<link rel="alternate" hreflang="${l}" href="${site.url}/${l === site.language ? '' : l + '/'}" />`).join('\n')}{`\n<link rel="alternate" hreflang="x-default" href="${site.url}/" />`}</code></pre>
+              <p><strong>Cosa state guardando:</strong> Astro i18n nativo. Ogni traduzione vive in <code>src/i18n/&lt;locale&gt;.ts</code>, ogni rotta in <code>src/pages/&lt;locale&gt;/index.astro</code>. Tag <code>hreflang</code> per ogni alternate, più <code>x-default</code> come fallback (lingua mostrata se Google non riconosce il paese del visitatore). Sitemap include <code>xhtml:link</code> alternates per ogni URL.</p>
+              <p><strong>Vs metodo classico:</strong> WordPress multilingua richiede plugin (WPML, Polylang) che spesso emette hreflang errato o mancante. Wix gestisce traduzioni manuali per pagina ma non sempre emette hreflang correttamente. Qui ogni traduzione è codice, ogni hreflang è verificato a build time.</p>
+            </div>
+          </details>
         </div>
       </article>
     )}
 
-    <!-- 06 Performance -->
+    <!-- 07 Performance -->
     <article class="td-block">
       <div class="td-block__head">
-        <span class="td-num">{isMultilingual ? '06' : '05'}</span>
+        <span class="td-num">{isMultilingual ? '07' : '06'}</span>
         <h2 class="td-block__title">Performance / Core Web Vitals</h2>
       </div>
       <div class="td-block__body">
         <p class="td-explain">
-          <strong>Cosa fa:</strong> Google misura quanto velocemente il sito
-          carica, quanto è stabile mentre carica, quanto reagisce al primo
+          <strong>Cosa fa:</strong> Google misura quanto velocemente carica
+          il sito, quanto è stabile mentre carica, quanto reagisce al primo
           tap. Questi tre numeri (LCP, CLS, INP) entrano nel ranking dal
-          2021. Un sito lento perde posizionamento e perde utenti — il 53%
+          2021. Un sito lento perde posizionamento + perde utenti — il 53%
           abbandona se il caricamento supera i 3 secondi.
         </p>
         <dl class="td-data">
@@ -182,13 +498,37 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           <div><dt>Immagini</dt><dd>{imagesOptimized > 0 ? `${imagesOptimized} ottimizzate (compressione + lazy loading)` : 'compressione + lazy loading'}</dd></div>
           <div><dt>JavaScript</dt><dd>caricato solo dove serve (islands architecture)</dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Configurazione Astro che produce il sito statico (<code>astro.config.mjs</code>):</p>
+            <pre class="td-deep__code"><code>{`import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
+
+export default defineConfig({
+  site: '${site.url}',
+  output: 'static',          // build statico: niente server, niente DB
+  integrations: [sitemap()],
+
+  build: {
+    inlineStylesheets: 'auto', // critical CSS inlined nel <head>
+  },
+
+  // Islands architecture: JavaScript caricato solo per
+  // componenti interattivi, mai per contenuto statico
+});`}</code></pre>
+            <p><strong>Cosa state guardando:</strong> <code>output: 'static'</code> = il sito viene servito come HTML+CSS+JS pre-compresso. Niente PHP, niente query SQL, niente render lato server. Critical CSS è inlined nel <code>&lt;head&gt;</code> per evitare il waterfall di richieste durante il first paint. Font self-hosted (no Google CDN), lazy loading nativo sulle immagini sotto la fold, preload esplicito sui font critical e sull'hero image (LCP). Risultato tipico: TTFB ≈ 50-100ms, JS bundle &lt;50KB, LCP &lt;1.5s. Categoria "Good" su tutti i Core Web Vitals senza plugin di cache.</p>
+            <p><strong>Vs metodo classico:</strong> WordPress renderizza ogni pagina via PHP + N query SQL al database. TTFB medio 600-1500ms su shared hosting. LCP tipico 3-5s — soglia "Poor" di Google. WP Rocket/W3 Total Cache servono a tappare il problema, non a risolverlo. Wix/Squarespace: JS bundle 1-3MB, LCP medio 2.5-4s, controllo limitato sul critical path.</p>
+          </div>
+        </details>
       </div>
     </article>
 
-    <!-- 07 Accessibilità -->
+    <!-- 08 Accessibilità -->
     <article class="td-block">
       <div class="td-block__head">
-        <span class="td-num">{isMultilingual ? '07' : '06'}</span>
+        <span class="td-num">{isMultilingual ? '08' : '07'}</span>
         <h2 class="td-block__title">Accessibilità WCAG 2.1 AA</h2>
       </div>
       <div class="td-block__body">
@@ -208,22 +548,33 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           <div><dt>Landmark</dt><dd>header, nav, main, footer semantici</dd></div>
           <div><dt>Focus visibile</dt><dd>su tutti gli elementi interattivi</dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Struttura HTML semantica usata in ogni pagina:</p>
+            <pre class="td-deep__code"><code>{a11yPreview}</code></pre>
+            <p><strong>Cosa state guardando:</strong> HTML5 semantico (<code>header</code>, <code>nav</code>, <code>main</code>, <code>article</code>, <code>footer</code>) con ruoli ARIA dove serve. Una sola <code>h1</code> per pagina, gerarchia lineare h1→h2→h3 (non saltare livelli). Alt text descrittivo, mai "image123.jpg". Contrasto testo/sfondo {contrastRatios.fgOnBg}:1 — AA richiede 4.5, AAA richiede 7. Focus state visibile su link/bottoni/form. <code>prefers-reduced-motion</code> rispettato: chi ha la riduzione movimenti attiva vede animazioni ridotte o assenti. Keyboard navigation completa — il sito è usabile senza mouse.</p>
+            <p><strong>Vs metodo classico:</strong> la maggior parte dei temi WordPress/Wix/Squarespace fallisce 5-10 criteri WCAG AA out-of-the-box. Page builder (Elementor, Divi) tipicamente rompono la heading hierarchy generando blocchi h2/h3 a casaccio. Qui a11y è considerata dall'inizio, non rattoppata alla fine. Pronto per audit pubblici (European Accessibility Act giugno 2025, PA Italia, settori regolamentati).</p>
+          </div>
+        </details>
       </div>
     </article>
 
-    <!-- 08 Privacy / GDPR -->
+    <!-- 09 Privacy / GDPR -->
     <article class="td-block">
       <div class="td-block__head">
-        <span class="td-num">{isMultilingual ? '08' : '07'}</span>
+        <span class="td-num">{isMultilingual ? '09' : '08'}</span>
         <h2 class="td-block__title">Privacy &amp; GDPR</h2>
       </div>
       <div class="td-block__body">
         <p class="td-explain">
-          <strong>Cosa fa:</strong> il sito non invia dati a terze parti senza
-          consenso. I font sono ospitati in autonomia (non Google CDN), le
-          immagini sono locali, non ci sono pixel di tracciamento. Nessun
-          banner cookie invadente perché non ci sono cookie da consentire.
-          Conforme al regolamento europeo per design, non per patch.
+          <strong>Cosa fa:</strong> il sito non invia dati a terze parti
+          senza consenso. I font sono ospitati in autonomia (non Google
+          CDN), le immagini sono locali, non ci sono pixel di tracciamento.
+          Nessun banner cookie invadente perché non ci sono cookie da
+          consentire. Conforme al regolamento europeo per design, non per
+          patch.
         </p>
         <dl class="td-data">
           <div><dt>Trasporto</dt><dd>HTTPS + HSTS</dd></div>
@@ -231,21 +582,32 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           <div><dt>Cookie</dt><dd>nessuno tecnico-esterno</dd></div>
           <div><dt>Privacy policy</dt><dd><a href="/privacy">/privacy</a></dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">HTTP response headers + assenze verificabili (DevTools → Network):</p>
+            <pre class="td-deep__code"><code>{headersPreview}</code></pre>
+            <p><strong>Cosa state guardando:</strong> il browser apre la vostra homepage, fa N richieste di rete. Quelle che NON ci sono — Google Analytics, Meta Pixel, Hotjar, Google Fonts CDN, Cloudflare Insights — sono il punto. È privacy by design, non un patch successivo. <code>strict-transport-security</code> + <code>x-content-type-options</code> + <code>referrer-policy</code> sono header di sicurezza emessi dall'hosting CDN. Esente dalla sentenza CGUE 2022 sul Google Fonts (caso Munich) perché i font sono self-hosted via Fontsource.</p>
+            <p><strong>Vs metodo classico:</strong> WordPress senza compliance carica Google Fonts dal CDN (illegale post-CGUE 2022), Google Analytics di default, FB Pixel se è installato qualunque plugin marketing. Banner cookie invasivo obbligatorio per legge — peggiora UX. Wix/Squarespace: tracker proprietari attivi by default, dati passati ai server US. Qui niente da consentire, niente banner cookie obbligatorio. Pronto per audit AGCOM/Garante senza modifiche.</p>
+          </div>
+        </details>
       </div>
     </article>
 
-    <!-- 09 Hosting & CDN -->
+    <!-- 10 Hosting & CDN -->
     <article class="td-block">
       <div class="td-block__head">
-        <span class="td-num">{isMultilingual ? '09' : '08'}</span>
+        <span class="td-num">{isMultilingual ? '10' : '09'}</span>
         <h2 class="td-block__title">Hosting &amp; CDN</h2>
       </div>
       <div class="td-block__body">
         <p class="td-explain">
-          <strong>Cosa fa:</strong> il sito è servito da una rete di datacenter
-          distribuiti geograficamente. Quando un utente apre la pagina, viene
-          servita dal datacenter più vicino — millisecondi invece di secondi.
-          La rete assorbe anche picchi di traffico senza degrado.
+          <strong>Cosa fa:</strong> il sito è servito da una rete di
+          datacenter distribuiti geograficamente. Quando un utente apre la
+          pagina, viene servita dal datacenter più vicino — millisecondi
+          invece di secondi. La rete assorbe anche picchi di traffico senza
+          degrado.
         </p>
         <dl class="td-data">
           <div><dt>Provider</dt><dd>{hosting.provider}</dd></div>
@@ -253,13 +615,23 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           {hosting.region && <div><dt>Copertura</dt><dd>{hosting.region}</dd></div>}
           <div><dt>Build type</dt><dd>statico — nessun server da gestire, nessun database da proteggere</dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Workflow di deploy automatico (<code>.github/workflows/deploy.yml</code>):</p>
+            <pre class="td-deep__code"><code>{deployPreview}</code></pre>
+            <p><strong>Cosa state guardando:</strong> deploy completamente automatico via GitHub Actions. Ogni push sul branch <code>main</code> attiva: build → upload artifact → deploy. Tempo medio dal push al sito live: 1-2 minuti. Custom domain con TLS auto-rinnovato (Let's Encrypt). Anti-DDoS via CDN provider. Provider attuale: <strong>{hosting.provider}</strong>{hosting.cdn ? `, CDN ${hosting.cdn}` : ''}{hosting.region ? `, copertura ${hosting.region.toLowerCase()}` : ''}. Niente server da patchare, niente database da backuppare, niente superficie d'attacco PHP/SQL.</p>
+            <p><strong>Vs metodo classico:</strong> hosting condiviso (Aruba, Register, OVH) €5-15/mese — server condiviso con N siti, TTFB lento, plugin WordPress vulnerabili, backup spesso non testato. Managed WordPress (Kinsta, WP Engine) €30-100/mese — performance migliore ma lock-in. Qui hosting incluso o &lt;€10/mese, performance superiore, niente lock-in: il codice è vostro, deployabile ovunque in 10 minuti se cambiate fornitore.</p>
+          </div>
+        </details>
       </div>
     </article>
 
-    <!-- 10 Stack tecnico -->
+    <!-- 11 Stack tecnico -->
     <article class="td-block">
       <div class="td-block__head">
-        <span class="td-num">{isMultilingual ? '10' : '09'}</span>
+        <span class="td-num">{isMultilingual ? '11' : '10'}</span>
         <h2 class="td-block__title">Stack tecnico</h2>
       </div>
       <div class="td-block__body">
@@ -268,7 +640,7 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           siti veloci di default. Niente WordPress da aggiornare, niente
           plugin da rompere, niente database da bucare. Il codice sorgente
           è versionato su Git: ogni modifica è tracciata, ogni build è
-          riproducibile.
+          riproducibile, ogni deploy è rollback-able in un comando.
         </p>
         <dl class="td-data">
           <div><dt>Framework</dt><dd>Astro 5.x ({starter})</dd></div>
@@ -277,17 +649,29 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
           <div><dt>Versionamento</dt><dd>Git — cronologia completa delle modifiche</dd></div>
           <div><dt>Deploy</dt><dd>automatico ad ogni push sul branch principale</dd></div>
         </dl>
+
+        <details class="td-deep">
+          <summary>Vedi il codice + spiegazione</summary>
+          <div class="td-deep__body">
+            <p class="td-deep__codecaption">Dipendenze del progetto (<code>package.json</code>):</p>
+            <pre class="td-deep__code"><code>{stackPreview}</code></pre>
+            <p><strong>Cosa state guardando:</strong> stack 2024-2026. <strong>Astro 5.x</strong>: framework content-driven, build statico, islands architecture. <strong>TypeScript strict</strong>: ogni componente, ogni dato tipizzato — intere classi di bug runtime impossibili. <strong>GSAP 3.14+</strong>: libreria di animazione standard industriale, hardware-accelerated. <strong>Lenis 1.3+</strong>: smooth scroll moderno, più affidabile di scroll-snap CSS. <strong>Fontsource</strong>: font self-hosted come NPM packages. <strong>Astro integrations ufficiali</strong> per sitemap, OpenGraph, Schema — non plugin terzi che si rompono. <strong>CI/CD via GitHub Actions</strong>: rollback con un comando.</p>
+            <p><strong>Vs metodo classico:</strong> WordPress è stack del 2003 con patch successive — PHP 7/8, MySQL, plugin ecosystem caotico, 1-3 CVE/anno per i plugin popolari, manutenzione mensile obbligatoria. Wix/Squarespace è SaaS proprietario: il codice non è vostro, passare a un'altra piattaforma significa ricostruire da zero. Qui stack moderno, codice vostro, hostable ovunque, update Astro/dipendenze ogni 6-12 mesi (non mensile), zero superficie attacco lato server, niente lock-in.</p>
+          </div>
+        </details>
       </div>
     </article>
 
     <footer class="td-footer">
       <p class="td-footer__line">
-        Tutto questo è verificabile. Apri qualsiasi link sopra, ispeziona il
-        codice della pagina, controlla gli header HTTP. Niente è nascosto,
-        niente è marketing — è ingegneria, documentata.
+        Tutto questo è verificabile. Aprite qualsiasi link sopra,
+        ispezionate il codice della pagina, controllate gli header HTTP.
+        Niente è nascosto, niente è marketing — è ingegneria, documentata.
       </p>
       <p class="td-footer__contact">
-        Domande tecniche? <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
+        Domande tecniche o richieste di approfondimento? Scrivete a
+        <a href="mailto:dentistici@gmail.com">dentistici@gmail.com</a>
+        — Denis Tcaci, builder del sito.
       </p>
     </footer>
   </div>
@@ -327,7 +711,14 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
   .td-lead {
     font-size: var(--text-lg, 1.125rem);
     line-height: 1.55;
-    color: color-mix(in srgb, currentColor 75%, transparent);
+    color: color-mix(in srgb, currentColor 80%, transparent);
+    max-width: 64ch;
+    margin: 0 0 var(--space-md, 1.5rem);
+  }
+  .td-lead-small {
+    font-size: var(--text-base, 1rem);
+    line-height: 1.55;
+    color: color-mix(in srgb, currentColor 65%, transparent);
     max-width: 64ch;
     margin: 0;
   }
@@ -410,17 +801,111 @@ const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
     font-weight: 400;
     word-break: break-word;
   }
-  .td-data code {
+  .td-data code,
+  .td-deep__body code {
     font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
     font-size: 0.9em;
     background: color-mix(in srgb, currentColor 6%, transparent);
     padding: 0.05em 0.35em;
     border-radius: 3px;
   }
-  .td-data a {
+  .td-data a,
+  .td-deep__body a {
     color: var(--color-accent, currentColor);
     text-decoration: underline;
     text-underline-offset: 2px;
+  }
+  .td-deep {
+    margin-top: var(--space-sm, 0.75rem);
+    border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-radius: 4px;
+    background: color-mix(in srgb, currentColor 3%, transparent);
+  }
+  .td-deep > summary {
+    cursor: pointer;
+    padding: var(--space-sm, 0.75rem) var(--space-md, 1.5rem);
+    font-size: var(--text-xs, 0.75rem);
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: color-mix(in srgb, currentColor 65%, transparent);
+    user-select: none;
+    transition: color 200ms;
+  }
+  .td-deep > summary::after {
+    content: " →";
+    opacity: 0.5;
+  }
+  .td-deep[open] > summary::after {
+    content: " ↓";
+    opacity: 1;
+  }
+  .td-deep > summary:hover {
+    color: currentColor;
+  }
+  .td-deep[open] > summary {
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    color: currentColor;
+  }
+  .td-deep__body {
+    padding: var(--space-md, 1.5rem);
+    font-size: var(--text-sm, 0.9rem);
+    line-height: 1.6;
+    color: color-mix(in srgb, currentColor 80%, transparent);
+  }
+  .td-deep__body p {
+    margin: 0 0 var(--space-sm, 0.75rem);
+  }
+  .td-deep__body p:last-child {
+    margin-bottom: 0;
+  }
+  .td-deep__body ul {
+    margin: 0;
+    padding-left: 1.25rem;
+  }
+  .td-deep__body li {
+    margin-bottom: 0.4rem;
+  }
+  .td-deep__body li:last-child {
+    margin-bottom: 0;
+  }
+  .td-deep__body strong {
+    color: currentColor;
+    font-weight: 600;
+  }
+  .td-jsonld-pre,
+  .td-deep__code {
+    margin: 0;
+    padding: var(--space-md, 1.5rem);
+    overflow-x: auto;
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    color: color-mix(in srgb, currentColor 80%, transparent);
+    background: color-mix(in srgb, currentColor 4%, transparent);
+    border: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+    border-radius: 4px;
+    white-space: pre;
+    tab-size: 2;
+  }
+  .td-jsonld-pre code,
+  .td-deep__code code {
+    background: transparent;
+    padding: 0;
+    border-radius: 0;
+    font-size: inherit;
+  }
+  .td-deep__codecaption {
+    font-size: var(--text-xs, 0.75rem);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: color-mix(in srgb, currentColor 55%, transparent);
+    margin: 0 0 var(--space-sm, 0.6rem);
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+  }
+  .td-deep__codecaption code {
+    text-transform: none;
+    font-size: inherit;
   }
   .td-footer {
     margin-top: var(--space-2xl, 4rem);

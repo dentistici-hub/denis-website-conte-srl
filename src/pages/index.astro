@@ -39,6 +39,7 @@ import ContentAbout from '@components/sections/ContentAbout.astro';
 import CodiceBand from '@components/sections/CodiceBand.astro';
 import ContactSplit from '@components/sections/ContactSplit.astro';
 import FooterRich from '@components/sections/FooterRich.astro';
+import BuilderBadge from '@shared/seo/BuilderBadge.astro';
 
 import {
   site,
@@ -175,6 +176,8 @@ const description = `${site.description}`;
       }}
     />
   </main>
+
+  <BuilderBadge isDemo={true} />
 
   <FooterRich
     brandName="Conte srl"
