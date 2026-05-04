@@ -1,0 +1,119 @@
+---
+/**
+ * Conte srl — Codice band
+ * Negative-space section (Layout Move 8) anchored on the codice as set type.
+ * Per copy.md §12 — "Codice tecnico tachigrafi… verificabile online".
+ * ClipMaskReveal up + scale on the codice itself.
+ *
+ * This is the third + biggest surfacing of "I3 044 1168" on the page.
+ * No image, only type. Concept-correct full-bleed typographic divider
+ * (Layout Move 1).
+ */
+import ClipMaskReveal from '@shared/motion-primitives/ClipMaskReveal.astro';
+
+interface Props {
+  codice: string;
+  subhead: string;
+  ctaLabel: string;
+  ctaHref: string;
+}
+
+const { codice, subhead, ctaLabel, ctaHref } = Astro.props;
+---
+
+<section class="codice-band section" aria-labelledby="codice-band-title">
+  <div class="container codice-band__inner">
+    <ClipMaskReveal
+      direction="up"
+      duration={1.0}
+      ease="power3.out"
+      delay={0.05}
+      start="top 75%"
+      class="codice-band__codice-wrap"
+    >
+      <h2
+        id="codice-band-title"
+        class="codice-band__codice display codice-tecnico"
+      >{codice}</h2>
+    </ClipMaskReveal>
+
+    <div class="codice-band__meta">
+      <p class="codice-band__sub lead">{subhead}</p>
+      <a
+        class="codice-band__cta"
+        href={ctaHref}
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <span>{ctaLabel}</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<style>
+  .codice-band {
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding-block: var(--space-2xl);
+    position: relative;
+  }
+
+  .codice-band__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: center;
+  }
+
+  .codice-band__codice {
+    /* Full-bleed-feeling display headline — sized to fit container, capped
+     * at a value the 1400px max-width can hold without clipping. */
+    font-size: clamp(3rem, 12vw, 8rem);
+    line-height: 0.92;
+    letter-spacing: 0.005em;
+    color: var(--color-accent);
+    margin: 0;
+  }
+
+  .codice-band__meta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-width: 56ch;
+  }
+
+  .codice-band__sub {
+    color: var(--color-fg-muted);
+  }
+
+  .codice-band__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.95rem 1.4rem;
+    border: 1px solid var(--color-accent);
+    background: transparent;
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    align-self: flex-start;
+    transition: background 180ms ease-out, color 180ms ease-out;
+  }
+  .codice-band__cta:hover {
+    background: var(--color-accent);
+    color: var(--color-bg-dark);
+  }
+
+  @media (min-width: 1000px) {
+    .codice-band__inner {
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+      gap: var(--space-2xl);
+    }
+  }
+</style>

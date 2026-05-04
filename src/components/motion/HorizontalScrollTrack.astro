@@ -1,0 +1,141 @@
+---
+/**
+ * HorizontalScrollTrack — Conte srl LOCAL copy of the Tier 1 primitive.
+ * Differs from shared/motion-primitives/HorizontalScrollTrack.astro in ONE
+ * value: scrub smoothing is 0.6 (motion-plan §7 committed timing) rather
+ * than the shared default 0.8. Everything else identical.
+ *
+ * Reason for the local fork: Law 6 (consume motion-plan micro-timings
+ * verbatim). Modifying the shared primitive would break other clients;
+ * a local copy keeps the contract local.
+ */
+interface Props {
+  gap?: string;
+  padding?: string;
+  speed?: number;
+  start?: string;
+  id?: string;
+  class?: string;
+}
+
+const {
+  gap = 'clamp(2rem, 4vw, 4rem)',
+  padding = 'clamp(1rem, 5vw, 6rem)',
+  speed = 1.0,
+  start = 'top top',
+  id,
+  class: className = '',
+} = Astro.props;
+---
+
+<section
+  class:list={['hscroll', className]}
+  data-hscroll-speed={String(speed)}
+  data-hscroll-start={start}
+  style={`--hscroll-gap: ${gap}; --hscroll-padding: ${padding};`}
+  id={id}
+>
+  <div class="hscroll__viewport">
+    <div class="hscroll__track">
+      <slot />
+    </div>
+  </div>
+</section>
+
+<style>
+  .hscroll {
+    position: relative;
+    width: 100%;
+    overflow: clip;
+  }
+  .hscroll__viewport {
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+  }
+  .hscroll__track {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: var(--hscroll-gap, 2rem);
+    padding-inline: var(--hscroll-padding, 5vw);
+    align-items: center;
+    will-change: transform;
+  }
+  /* Reduced motion fallback — show natively scrollable track. */
+  @media (prefers-reduced-motion: reduce) {
+    .hscroll__viewport {
+      height: auto;
+      overflow-x: auto;
+    }
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  const w = window as unknown as { __mpGsap?: boolean };
+  if (!w.__mpGsap) {
+    gsap.registerPlugin(ScrollTrigger);
+    w.__mpGsap = true;
+  }
+
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function initHScroll(): void {
+    const sections = document.querySelectorAll<HTMLElement>('.hscroll[data-hscroll-speed]');
+    if (sections.length === 0) return;
+    if (isReducedMotion()) return; // CSS handles the fallback.
+
+    sections.forEach((section) => {
+      if (section.dataset.hscrollInitialized === 'true') return;
+      section.dataset.hscrollInitialized = 'true';
+
+      const viewport = section.querySelector<HTMLElement>('.hscroll__viewport');
+      const track = section.querySelector<HTMLElement>('.hscroll__track');
+      if (!viewport || !track) return;
+
+      const speed = parseFloat(section.dataset.hscrollSpeed || '1');
+      const start = section.dataset.hscrollStart || 'top top';
+
+      const computeDistance = (): number => {
+        const trackWidth = track.scrollWidth;
+        const viewportWidth = viewport.clientWidth;
+        return Math.max(0, trackWidth - viewportWidth);
+      };
+
+      let distance = computeDistance();
+
+      const trigger = ScrollTrigger.create({
+        trigger: section,
+        start,
+        end: () => `+=${distance * speed}`,
+        pin: viewport,
+        pinSpacing: true,
+        // Motion-plan §7 committed: scrub smoothing 0.6 (surgical register).
+        scrub: 0.6,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          gsap.set(track, { x: -distance * self.progress });
+        },
+      });
+
+      const onResize = (): void => {
+        distance = computeDistance();
+        ScrollTrigger.refresh();
+      };
+      window.addEventListener('resize', onResize, { passive: true });
+      (trigger as unknown as { __onResize?: () => void }).__onResize = onResize;
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHScroll, { once: true });
+  } else {
+    initHScroll();
+  }
+</script>

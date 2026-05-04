@@ -1,0 +1,202 @@
+---
+/**
+ * Conte srl — Footer (bespoke, rich)
+ * Per copy.md §14 — 4 columns: Sede, Linee dirette, Email, Autorizzazioni.
+ * Audit-trail register. NO newsletter form (concept §6 OUT).
+ *
+ * Static document register — motion-plan §2 commits "NONE" for footer.
+ */
+interface FooterColumn {
+  heading: string;
+  lines: string[];
+}
+
+interface Props {
+  brandName: string;
+  tagline: string;
+  columns: FooterColumn[];
+  legalLine: string;
+  legalLinks: { label: string; href: string }[];
+  logoSrc?: string;
+}
+
+const { brandName, tagline, columns, legalLine, legalLinks, logoSrc } = Astro.props;
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+const resolvedLogoSrc = logoSrc
+  ? (logoSrc.startsWith('/') ? `${baseUrl}${logoSrc}` : logoSrc)
+  : undefined;
+---
+
+<footer class="footer-conte" role="contentinfo">
+  <div class="container footer-conte__inner">
+    <div class="footer-conte__brand">
+      {resolvedLogoSrc && (
+        <img
+          src={resolvedLogoSrc}
+          alt="Logo Conte srl con illustrazione a matita di un veicolo industriale"
+          class="footer-conte__logo nav__brand-logo"
+          width="240"
+          height="151"
+          loading="lazy"
+        />
+      )}
+      <p class="footer-conte__brand-name">{brandName}</p>
+      <p class="footer-conte__tagline">{tagline}</p>
+      <p class="footer-conte__codice-line">
+        <span class="footer-conte__codice-label">CODICE TECNICO</span>
+        <span class="codice-tecnico footer-conte__codice">I3 044 1168</span>
+      </p>
+    </div>
+
+    {columns.map((col) => (
+      <div class="footer-conte__col">
+        <h3 class="footer-conte__col-heading">{col.heading}</h3>
+        <ul>
+          {col.lines.map((line) => (
+            <li class="footer-conte__line">{line}</li>
+          ))}
+        </ul>
+      </div>
+    ))}
+  </div>
+
+  <div class="footer-conte__legal container">
+    <p class="footer-conte__legal-text">{legalLine}</p>
+    <ul class="footer-conte__legal-links">
+      {legalLinks.map((l) => (
+        <li><a href={l.href} class="footer-conte__legal-link">{l.label}</a></li>
+      ))}
+    </ul>
+  </div>
+</footer>
+
+<style>
+  .footer-conte {
+    background: var(--color-bg-dark);
+    border-top: 1px solid var(--color-border-strong);
+    padding-top: var(--space-2xl);
+    padding-bottom: var(--space-md);
+    color: var(--color-fg);
+  }
+
+  .footer-conte__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+    padding-bottom: var(--space-xl);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .footer-conte__brand {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .footer-conte__logo {
+    display: block;
+    width: clamp(160px, 22vw, 220px);
+    height: auto;
+    margin-bottom: 0.85rem;
+    filter: grayscale(1) brightness(1.4);
+    opacity: 0.85;
+  }
+  .footer-conte__brand-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-h3);
+    color: var(--color-fg);
+    letter-spacing: -0.005em;
+  }
+  .footer-conte__tagline {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    max-width: 32ch;
+    line-height: 1.5;
+  }
+  .footer-conte__codice-line {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.6rem;
+  }
+  .footer-conte__codice-label {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.65rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+  }
+  .footer-conte__codice {
+    font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+    line-height: 1;
+  }
+
+  .footer-conte__col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .footer-conte__col ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+  .footer-conte__col-heading {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.65rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+    margin-bottom: 0.4rem;
+  }
+
+  .footer-conte__line {
+    font-size: var(--text-xs);
+    line-height: 1.55;
+    color: var(--color-fg-muted);
+    letter-spacing: 0.02em;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  .footer-conte__legal {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding-top: var(--space-md);
+  }
+  .footer-conte__legal-text {
+    font-size: var(--text-xs);
+    letter-spacing: 0.06em;
+    color: var(--color-fg-faint);
+    line-height: 1.55;
+  }
+  .footer-conte__legal-links {
+    list-style: none;
+    display: flex;
+    gap: 1.25rem;
+  }
+  .footer-conte__legal-link {
+    font-size: var(--text-xs);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+    transition: color 180ms ease-out;
+  }
+  .footer-conte__legal-link:hover { color: var(--color-accent); }
+
+  @media (min-width: 700px) {
+    .footer-conte__inner {
+      grid-template-columns: minmax(0, 1.4fr) repeat(4, minmax(0, 1fr));
+      gap: var(--space-lg);
+    }
+  }
+  @media (max-width: 700px) {
+    .footer-conte__legal {
+      flex-direction: column;
+    }
+  }
+</style>

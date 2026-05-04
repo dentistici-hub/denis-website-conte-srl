@@ -1,0 +1,250 @@
+---
+/**
+ * Conte srl — homepage
+ *
+ * Section order (per brief.json + concept §6):
+ *   1. Nav (sticky)
+ *   2. Hero (hero-stats variant, asymmetric 60/40, 4 KPI tiles)
+ *   3. TrustHeritage (KenBurnsImage bg + Centro Tecnico badge)
+ *   4. Certifications Marquee (text-only, no logos)
+ *   5. ServicesProcess (4 complementary works, numbered)
+ *   6. Signature HorizontalScrollTrack (5 chapters — THE move)
+ *   7. ContentAbout (Chi opera)
+ *   8. CodiceBand (full-bleed I3 044 1168 typographic divider)
+ *   9. ContactSplit (3 phones + 3 emails + map + hours)
+ *  10. FooterRich (4 columns + audit trail)
+ *
+ * Layout Moves committed:
+ *   - Layout Move 1: Full-bleed typographic divider (CodiceBand — I3 044 1168 at display size)
+ *   - Layout Move 2: Asymmetric hero (60/40 copy + duotone photo)
+ *   - Layout Move 8: Negative-space section (CodiceBand)
+ *   - Layout Move 10: Number-first list (ServicesProcess + signature chapters)
+ *
+ * Motion Moves committed:
+ *   - HorizontalScrollTrack pinned (signature, the page's only scroll-pattern budget)
+ *   - ClipMaskReveal on hero stats + trust badge + codice band
+ *   - MagneticButton on contact primary CTA (single instance)
+ *   - Marquee on certifications (CSS, zero JS)
+ *   - KenBurnsImage on trust block background
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+import NavConte from '@components/sections/NavConte.astro';
+import HeroConte from '@components/sections/HeroConte.astro';
+import TrustHeritage from '@components/sections/TrustHeritage.astro';
+import CertificationsMarquee from '@components/sections/CertificationsMarquee.astro';
+import ServicesProcess from '@components/sections/ServicesProcess.astro';
+import SignatureTrack from '@components/sections/SignatureTrack.astro';
+import ContentAbout from '@components/sections/ContentAbout.astro';
+import CodiceBand from '@components/sections/CodiceBand.astro';
+import ContactSplit from '@components/sections/ContactSplit.astro';
+import FooterRich from '@components/sections/FooterRich.astro';
+
+import {
+  site,
+  nav,
+  heroStats,
+  certificationsMarquee,
+  chapters,
+  complementaryServices,
+  phones,
+  emails,
+  footerColumns,
+  schema,
+} from '../data/placeholder';
+
+const description = `${site.description}`;
+---
+
+<BaseLayout
+  title="Officina veicoli industriali"
+  description={description}
+  site={site}
+  schema={schema}
+>
+  <NavConte
+    brandName="Conte srl"
+    links={nav}
+    phoneDisplay="0831 382539"
+    phoneHref="tel:+390831382539"
+  />
+
+  <main id="main">
+    <HeroConte
+      eyebrow="Officina veicoli industriali — Ceglie Messapica"
+      headline="25 anni di mezzi pesanti, un codice Unioncamere."
+      subhead="Diagnosi TEXA, banco prova freni, opacimetro omologato e centro tecnico tachigrafi I3 044 1168 — in zona industriale, dal 1998 circa."
+      primaryCta={{ label: '0831 382539', href: 'tel:+390831382539' }}
+      secondaryCta={{ label: 'Scrivete a info@conte-srl.com', href: 'mailto:info@conte-srl.com' }}
+      stats={heroStats}
+      heroImageSrc="/images/hero.jpg"
+      heroImageAlt="Camion rosso visto frontalmente da angolazione bassa all'interno di un'officina industriale in penombra, fari accesi, ponti sollevatori e attrezzature visibili ai lati"
+    />
+
+    <TrustHeritage
+      eyebrow="In zona industriale dal 1998 circa"
+      headline="Stessa officina, stesso indirizzo, stessa autorizzazione."
+      body="Conte srl opera da oltre 25 anni in Via 2 Giugno, zona industriale di Ceglie Messapica. Centro tecnico tachigrafi e centro revisioni iscritto MCTC, riferimento operativo per autotrasportatori e flotte del corridoio Brindisi-Taranto-Lecce."
+      bgImageSrc="/images/atmosphere.jpg"
+      bgImageAlt="Parete di pezzi di ricambio meccanici sospesi in un'officina autentica, calendario sulla sinistra, taniche di olio Castrol Magnatec in basso, illuminazione calda da lampada appesa"
+    />
+
+    <CertificationsMarquee items={certificationsMarquee} />
+
+    <ServicesProcess
+      eyebrow="Lavorazioni complementari"
+      headline="Quattro voci che chiudono il ciclo."
+      subhead="Oltre alla chain diagnostica → revisione → tachigrafi, l'officina copre interventi mirati su impianti specifici e attrezzature complementari."
+      steps={complementaryServices}
+    />
+
+    <SignatureTrack
+      eyebrow="La chain operativa"
+      headline="Cinque capitoli — diagnostica, banchi, revisione, tachigrafi, interventi esterni."
+      chapters={chapters}
+    />
+
+    <ContentAbout
+      eyebrow="Chi opera"
+      headline="Officina specializzata, non multibrand di passaggio."
+      body="Conte srl è officina specializzata in revisione, riparazione e diagnosi di veicoli industriali e autovetture. Le attrezzature in dotazione coprono l'intero ciclo di verifica e ripristino. La sede è il riferimento operativo per autotrasportatori, flotte e operatori dei trasporti del corridoio Brindisi-Taranto-Lecce."
+      factPills={[
+        { label: 'Sede', value: 'Z.I. Ceglie Messapica (BR)' },
+        { label: 'Codice tecnico', value: 'I3 044 1168' },
+        { label: 'Apertura', value: 'Lun-Sab orario continuato' },
+        { label: 'Linee dirette', value: '3 telefoni' },
+      ]}
+      sideImageSrc="/images/about.jpg"
+      sideImageAlt="Meccanico in camicia a quadri solleva il cofano basculante di un camion europeo giallo per accedere al motore, vano motore e radiatore visibili"
+    />
+
+    <!-- Magazzino full-bleed atmospheric band — Layout Move 3.
+         Single edge-to-edge image breaks the container rhythm before contact. -->
+    <aside
+      class="atmosphere-band"
+      aria-label="Magazzino ricambi interno, scaffalature di cinghie"
+    >
+      <img
+        src={`${import.meta.env.BASE_URL.replace(/\/$/, '')}/images/service-magazzino-ricambi.jpg`}
+        alt="Magazzino di cinghie trapezoidali e di trasmissione impilate in dense pile su scaffalature in legno, illuminazione calda smorzata"
+        loading="lazy"
+        decoding="async"
+      />
+      <div class="atmosphere-band__overlay" aria-hidden="true"></div>
+      <div class="container atmosphere-band__caption">
+        <span class="eyebrow">Magazzino interno</span>
+        <p>
+          Vasta scorta di ricambi per veicoli industriali — frizioni, freni,
+          componentistica meccanica e idraulica, pronta sul posto per accorciare
+          i fermi macchina.
+        </p>
+      </div>
+    </aside>
+
+    <CodiceBand
+      codice="I3 044 1168"
+      subhead="Codice tecnico tachigrafi — Camera di Commercio Brindisi, Unioncamere Metrologia Legale. Verificabile online."
+      ctaLabel="Verificate il codice"
+      ctaHref="https://www.metrologialegale.unioncamere.it/tachigrafi/centri-tecnici"
+    />
+
+    <ContactSplit
+      eyebrow="Dove e come"
+      headline="Tre linee dirette, una sede, orario continuato."
+      subhead="Per fermo macchina e interventi esterni le tre linee sono presidiate negli orari di apertura. Niente form: chiamate, oppure scrivete a una delle tre email."
+      primaryCtaLabel="0831 382539"
+      primaryCtaHref="tel:+390831382539"
+      phones={phones}
+      emails={emails}
+      addressLines={[
+        'Conte srl',
+        'Via 2 Giugno — Z.I.',
+        '72013 Ceglie Messapica (BR)',
+        'Italia',
+      ]}
+      mapsLabel="Apri in Google Maps"
+      mapsHref="https://www.google.com/maps/search/?api=1&query=Conte+srl+Via+2+Giugno+Ceglie+Messapica"
+      hours={{
+        heading: 'Orario continuato',
+        weekdayLabel: 'Lun – Ven',
+        weekdayValue: '8:30 – 13:30  ·  15:30 – 19:30',
+        saturdayLabel: 'Sabato',
+        saturdayValue: '8:30 – 13:00',
+        sundayLabel: 'Domenica',
+        sundayValue: 'Chiuso',
+      }}
+    />
+  </main>
+
+  <FooterRich
+    brandName="Conte srl"
+    tagline="Officina veicoli industriali — zona industriale Ceglie Messapica, dal 1998 circa."
+    columns={footerColumns}
+    legalLine="© 2026 Conte srl — P.IVA 01943880748 — sede legale Via 2 Giugno Z.I., 72013 Ceglie Messapica (BR)."
+    legalLinks={[
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Cookie', href: '/cookie-policy' },
+    ]}
+    logoSrc="/images/logo.png"
+  />
+</BaseLayout>
+
+<script>
+  import '../scripts/scroll-animations';
+</script>
+
+<style>
+  .atmosphere-band {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 21 / 9;
+    overflow: hidden;
+    background: var(--color-bg-dark);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+  }
+  .atmosphere-band img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: grayscale(0.6) contrast(1.1) brightness(0.45);
+  }
+  .atmosphere-band__overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      rgba(21, 23, 26, 0.85) 0%,
+      rgba(21, 23, 26, 0.55) 60%,
+      rgba(21, 23, 26, 0.4) 100%
+    );
+  }
+  .atmosphere-band__caption {
+    position: relative;
+    z-index: var(--z-content);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    padding-block: var(--space-lg);
+  }
+  .atmosphere-band__caption .eyebrow {
+    color: var(--color-accent);
+  }
+  .atmosphere-band__caption p {
+    font-family: var(--font-body);
+    font-weight: 400;
+    color: var(--color-fg);
+    font-size: var(--text-base);
+    max-width: 56ch;
+    line-height: 1.5;
+  }
+  @media (max-width: 700px) {
+    .atmosphere-band {
+      aspect-ratio: 4 / 5;
+    }
+  }
+</style>

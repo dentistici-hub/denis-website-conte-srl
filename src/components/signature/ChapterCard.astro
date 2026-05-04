@@ -1,0 +1,274 @@
+---
+/**
+ * Conte srl — ChapterCard
+ * Bespoke chapter-card component for the signature HorizontalScrollTrack.
+ * Each card: DuotonePhoto (charcoal+saffron) + oversized chapter numeral +
+ * eyebrow + headline + body. Chapter 04 ("I3 044 1168") gets the largest
+ * type weight per concept §2 / motion-plan §1.
+ *
+ * Concept enforcement:
+ *   - Photo treated via DuotonePhoto (shared/motion-primitives) with
+ *     shadow=#15171A (charcoal) and highlight=#F4C430 (saffron).
+ *   - Numeral 01–05 in Archivo Narrow 700, saffron, --text-display.
+ *   - Steel-blue 1px decorative border (concept §5).
+ *   - Chapter 04 codice "I3 044 1168" rendered as set type via
+ *     .codice-tecnico (type-system §4 — nowrap, tabular, saffron).
+ *
+ * Image paths are passed through Astro's BASE_URL so GH Pages sub-path
+ * deploys resolve correctly.
+ */
+import DuotonePhoto from '@shared/motion-primitives/DuotonePhoto.astro';
+
+interface CtaShape {
+  label: string;
+  href: string;
+  external?: boolean;
+}
+
+interface Props {
+  number: string;
+  eyebrow: string;
+  headline: string;
+  body: string;
+  imageSrc: string;
+  imageAlt: string;
+  inlineValue?: string;
+  inlineValueLabel?: string;
+  cta?: CtaShape;
+  /** Anchor id — used by chapter 04 to be navigable from /#tachigrafi. */
+  anchorId?: string;
+  /** Mark the load-bearing chapter (04) — gets larger codice/headline weight. */
+  loadBearing?: boolean;
+}
+
+const {
+  number,
+  eyebrow,
+  headline,
+  body,
+  imageSrc,
+  imageAlt,
+  inlineValue,
+  inlineValueLabel,
+  cta,
+  anchorId,
+  loadBearing = false,
+} = Astro.props;
+
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+const resolvedSrc = imageSrc.startsWith('/') ? `${baseUrl}${imageSrc}` : imageSrc;
+---
+
+<article
+  class:list={['chapter-card', loadBearing && 'chapter-card--load-bearing']}
+  id={anchorId}
+  aria-labelledby={`chapter-${number}-title`}
+>
+  <!-- DuotonePhoto: charcoal+saffron treatment per concept color law. -->
+  <div class="chapter-card__photo">
+    <DuotonePhoto
+      src={resolvedSrc}
+      alt={imageAlt}
+      shadow="#15171A"
+      highlight="#F4C430"
+      intensity={0.78}
+      aspectRatio="4 / 5"
+    />
+  </div>
+
+  <header class="chapter-card__header">
+    <span class="chapter-card__meta">
+      <span class="chapter-card__capitolo">CAPITOLO</span>
+      <span class="chapter-card__numeral display">{number}</span>
+    </span>
+    <span class="chapter-card__eyebrow eyebrow">{eyebrow}</span>
+  </header>
+
+  <div class="chapter-card__body">
+    <h3 id={`chapter-${number}-title`} class="chapter-card__title h3">{headline}</h3>
+    <p class="chapter-card__copy body">{body}</p>
+
+    {inlineValue && (
+      <!-- Chapter 04 load-bearing moment — codice as set type, saffron, oversized. -->
+      <div class="chapter-card__codice-block">
+        <span class="codice-tecnico chapter-card__codice display">{inlineValue}</span>
+        {inlineValueLabel && (
+          <span class="chapter-card__codice-label">{inlineValueLabel}</span>
+        )}
+      </div>
+    )}
+
+    {cta && (
+      <a
+        class="chapter-card__cta"
+        href={cta.href}
+        target={cta.external ? '_blank' : undefined}
+        rel={cta.external ? 'noopener noreferrer' : undefined}
+      >
+        <span>{cta.label}</span>
+        <span class="chapter-card__cta-arrow" aria-hidden="true">→</span>
+      </a>
+    )}
+  </div>
+</article>
+
+<style>
+  .chapter-card {
+    flex: 0 0 60vw;
+    max-width: 720px;
+    min-width: 320px;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-accent-secondary);  /* steel-blue, decorative only */
+    padding: clamp(1.25rem, 2vw, 2rem);
+    display: grid;
+    grid-template-rows: auto auto 1fr;
+    gap: clamp(1rem, 2vw, 1.5rem);
+    height: clamp(540px, 78vh, 760px);
+    box-sizing: border-box;
+  }
+
+  .chapter-card--load-bearing {
+    border-color: var(--color-accent);
+    border-width: 2px;
+  }
+
+  .chapter-card__photo {
+    overflow: hidden;
+    height: clamp(180px, 28vh, 260px);
+  }
+  .chapter-card__photo :global(.duotone) {
+    height: 100%;
+  }
+  .chapter-card__photo :global(.duotone__img) {
+    height: 100%;
+  }
+
+  .chapter-card__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-md);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding-block: 0.5rem;
+  }
+
+  .chapter-card__meta {
+    display: flex;
+    align-items: baseline;
+    gap: 0.6rem;
+  }
+
+  .chapter-card__capitolo {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: var(--text-eyebrow);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+  }
+
+  .chapter-card__numeral {
+    font-size: clamp(2.75rem, 6vw, 4.75rem);
+    line-height: 0.9;
+    color: var(--color-accent);
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  .chapter-card--load-bearing .chapter-card__numeral {
+    /* Chapter 04 — larger weight per concept §2 / motion-plan §1. */
+    font-size: clamp(3.5rem, 7.5vw, 5.75rem);
+  }
+
+  .chapter-card__eyebrow {
+    color: var(--color-fg-muted);
+    text-align: right;
+    max-width: 60%;
+  }
+
+  .chapter-card__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+
+  .chapter-card__title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: var(--color-fg);
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+    max-width: 24ch;
+  }
+
+  .chapter-card--load-bearing .chapter-card__title {
+    color: var(--color-accent);
+  }
+
+  .chapter-card__copy {
+    color: var(--color-fg-muted);
+    line-height: 1.5;
+    max-width: 48ch;
+    font-size: var(--text-base);
+  }
+
+  .chapter-card__codice-block {
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .chapter-card__codice {
+    /* Chapter 04 codice — 130% the size of normal chapter labels (motion-plan §1).
+     * Set type, saffron, tabular-nums. .codice-tecnico class adds nowrap. */
+    font-size: clamp(1.85rem, 3.6vw, 2.85rem);
+    line-height: 1;
+    letter-spacing: 0.005em;
+  }
+
+  .chapter-card__codice-label {
+    font-size: var(--text-sm);
+    color: var(--color-fg-faint);
+    line-height: 1.35;
+  }
+
+  .chapter-card__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+    align-self: flex-start;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: gap 180ms ease-out, color 180ms ease-out;
+  }
+  .chapter-card__cta:hover {
+    gap: 0.95rem;
+    color: var(--color-accent-hover);
+  }
+  .chapter-card__cta-arrow {
+    display: inline-block;
+    line-height: 1;
+  }
+
+  @media (max-width: 700px) {
+    .chapter-card {
+      flex: 0 0 84vw;
+      height: auto;
+      min-height: 540px;
+    }
+    .chapter-card__eyebrow {
+      max-width: 100%;
+      text-align: left;
+    }
+  }
+</style>

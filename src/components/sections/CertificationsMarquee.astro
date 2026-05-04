@@ -1,0 +1,58 @@
+---
+/**
+ * Conte srl — Certifications Marquee
+ * Text-only ticker per copy.md §8. NO logos. Six committed items.
+ * Speed 50s/loop — slower than default 45s because audience reads Italian
+ * regulatory text (motion-plan §2 + §7).
+ */
+import Marquee from '@shared/motion-primitives/Marquee.astro';
+
+interface Props {
+  items: string[];
+}
+const { items } = Astro.props;
+---
+
+<section class="cert-marquee" aria-label="Elenco autorizzazioni e certificazioni">
+  <Marquee speed={50} gap="3.5rem" pauseOnHover={true}>
+    {items.map((item) => (
+      <span class="cert-marquee__item">
+        <span class="cert-marquee__text">{item}</span>
+        <span class="cert-marquee__sep" aria-hidden="true">·</span>
+      </span>
+    ))}
+  </Marquee>
+</section>
+
+<style>
+  .cert-marquee {
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    padding-block: 1.1rem;
+    overflow: hidden;
+  }
+
+  .cert-marquee__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 3.5rem;
+    flex: 0 0 auto;
+  }
+
+  .cert-marquee__text {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-fg);
+    white-space: nowrap;
+  }
+
+  .cert-marquee__sep {
+    color: var(--color-accent);
+    font-size: 1.4rem;
+    line-height: 1;
+  }
+</style>

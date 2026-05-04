@@ -1,0 +1,41 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import NavConte from '@components/sections/NavConte.astro';
+import FooterRich from '@components/sections/FooterRich.astro';
+import TechnicalDisclosure from '../../../../components/seo/TechnicalDisclosure.astro';
+import { site, nav, footerColumns, schema } from '../data/placeholder';
+---
+
+<BaseLayout
+  title="Dietro le quinte"
+  description={`Documentazione tecnica del sito ${site.name} — SEO, indicizzazione AI, accessibilità, performance.`}
+  site={site}
+  schema={schema}
+>
+  <NavConte
+    brandName="Conte srl"
+    links={nav}
+    phoneDisplay="0831 382539"
+    phoneHref="tel:+390831382539"
+  />
+
+  <main id="main" style="padding-top: 72px;">
+    <TechnicalDisclosure
+      site={site}
+      schema={schema}
+      starter="Construction starter"
+    />
+  </main>
+
+  <FooterRich
+    brandName="Conte srl"
+    tagline="Officina veicoli industriali — zona industriale Ceglie Messapica, dal 1998 circa."
+    columns={footerColumns}
+    legalLine="© 2026 Conte srl — P.IVA 01943880748 — sede legale Via 2 Giugno Z.I., 72013 Ceglie Messapica (BR)."
+    legalLinks={[
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Cookie', href: '/cookie-policy' },
+    ]}
+    logoSrc="/images/logo.png"
+  />
+</BaseLayout>

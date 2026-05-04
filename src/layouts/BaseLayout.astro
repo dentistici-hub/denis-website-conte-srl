@@ -1,0 +1,108 @@
+---
+/**
+ * BaseLayout — Conte srl
+ * Italian only (lang="it"). Demo mode default.
+ * Fontsource imports per type-system §7. NO Google CDN.
+ */
+import '@fontsource/archivo-narrow/700.css';     // hero / h1 / h2 / numerals — preload
+import '@fontsource/archivo/400.css';            // body — preload
+import '@fontsource/archivo-narrow/500.css';     // eyebrows / marquee
+import '@fontsource/archivo/500.css';            // CTA / inline emphasis
+import '@fontsource/archivo/600.css';            // h3 chapter card titles only
+
+import '../styles/tokens.css';
+import '../styles/global.css';
+
+import SchemaLayer from '@shared/seo/SchemaLayer.astro';
+import OpenGraph from '@shared/seo/OpenGraph.astro';
+import DemoBanner from '@shared/seo/DemoBanner.astro';
+import GrainOverlay from '@shared/decorative/GrainOverlay.astro';
+
+import type { SiteConfig, SchemaConfig } from '@shared/types/content';
+
+interface Props {
+  title: string;
+  description: string;
+  site: SiteConfig;
+  schema: SchemaConfig;
+  ogImage?: string;
+  isDemo?: boolean;
+  demoMessage?: string;
+}
+
+const {
+  title,
+  description,
+  site,
+  schema,
+  ogImage,
+  isDemo = true,
+  demoMessage = "Anteprima non indicizzata. URL definitivo in corso di configurazione.",
+} = Astro.props;
+
+const fullTitle = `${title} | ${site.name}`;
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+const ogImageResolved = ogImage ?? `${baseUrl}/images/hero.jpg`;
+---
+
+<!doctype html>
+<html lang={site.language}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{fullTitle}</title>
+    <meta name="description" content={description} />
+    <meta name="last-modified" content={site.lastUpdated} />
+    <link rel="icon" type="image/svg+xml" href={`${baseUrl}/favicon.svg`} />
+    <link rel="alternate icon" href={`${baseUrl}/favicon.ico`} />
+    <link rel="sitemap" href="/sitemap-index.xml" />
+
+    {isDemo && <meta name="robots" content="noindex, nofollow" />}
+
+    <OpenGraph
+      title={fullTitle}
+      description={description}
+      url={site.url}
+      siteName={site.name}
+      image={ogImageResolved}
+      locale="it_IT"
+    />
+
+    <SchemaLayer
+      site={site}
+      schema={schema}
+      pageTitle={fullTitle}
+      pageDescription={description}
+    />
+
+    <!-- Skip link target -->
+  </head>
+  <body>
+    <a href="#main" class="skip-link">Salta al contenuto</a>
+
+    <slot />
+
+    <!-- GrainOverlay at 0.04 opacity per concept §5 — atmosphere, not clutter. -->
+    <GrainOverlay opacity={0.04} blend="soft-light" />
+
+    {isDemo && <DemoBanner enabled={isDemo} message={demoMessage} />}
+
+    <style>
+      .skip-link {
+        position: absolute;
+        left: -9999px;
+        top: 0;
+        z-index: var(--z-overlay);
+        background: var(--color-accent);
+        color: var(--color-bg-dark);
+        padding: 0.75rem 1rem;
+        font-family: var(--font-body);
+        font-weight: 500;
+      }
+      .skip-link:focus {
+        left: 1rem;
+        top: 1rem;
+      }
+    </style>
+  </body>
+</html>

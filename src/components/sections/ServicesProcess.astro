@@ -1,0 +1,131 @@
+---
+/**
+ * Conte srl — Services-process (complementary works)
+ * Numbered list of 4 complementary services per copy.md §10. Iconified —
+ * concept §6 IN list says "iconified for the 4 brief-only services with
+ * no images". No card hover, no symmetric tile grid (Layout Move 10:
+ * number-first list).
+ *
+ * Section sits between certifications marquee and the signature track.
+ * data-anim="fade-up" with stagger 0.06s (motion-plan §7).
+ */
+interface ProcessStep {
+  number: string;
+  label: string;
+  body: string;
+}
+
+interface Props {
+  eyebrow: string;
+  headline: string;
+  subhead: string;
+  steps: ProcessStep[];
+}
+
+const { eyebrow, headline, subhead, steps } = Astro.props;
+---
+
+<section class="services-process section" id="services" aria-labelledby="services-title">
+  <div class="container services-process__inner">
+    <header class="services-process__header" data-animate>
+      <p class="services-process__eyebrow eyebrow">{eyebrow}</p>
+      <h2 id="services-title" class="services-process__title h2">{headline}</h2>
+      <p class="services-process__subhead lead">{subhead}</p>
+    </header>
+
+    <ol class="services-process__list">
+      {steps.map((step, idx) => (
+        <li
+          class="services-process__step"
+          data-animate
+          style={`--step-delay: ${idx * 0.06}s`}
+        >
+          <span class="services-process__num display">{step.number}</span>
+          <div class="services-process__step-body">
+            <h3 class="services-process__step-label h3">{step.label}</h3>
+            <p class="services-process__step-copy body">{step.body}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .services-process {
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .services-process__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2xl);
+  }
+
+  .services-process__header {
+    max-width: 880px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .services-process__eyebrow {
+    color: var(--color-accent);
+  }
+  .services-process__title {
+    color: var(--color-fg);
+    max-width: 22ch;
+  }
+  .services-process__subhead {
+    color: var(--color-fg-muted);
+    margin-top: 0.25rem;
+  }
+
+  .services-process__list {
+    list-style: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    counter-reset: step;
+  }
+
+  .services-process__step {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 3fr);
+    gap: var(--space-lg);
+    align-items: baseline;
+    padding-block: 1.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+  .services-process__step:last-child {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .services-process__num {
+    font-size: clamp(2.75rem, 5vw, 4.5rem);
+    line-height: 1;
+    color: var(--color-accent);
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  .services-process__step-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  .services-process__step-label {
+    color: var(--color-fg);
+  }
+
+  .services-process__step-copy {
+    color: var(--color-fg-muted);
+    max-width: 64ch;
+  }
+
+  @media (min-width: 900px) {
+    .services-process__step {
+      grid-template-columns: minmax(0, 0.4fr) minmax(0, 3fr);
+    }
+  }
+</style>

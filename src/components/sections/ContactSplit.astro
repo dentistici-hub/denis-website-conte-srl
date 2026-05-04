@@ -1,0 +1,304 @@
+---
+/**
+ * Conte srl — Contact split (bespoke)
+ * 3 phones + 3 emails + map link tile per copy.md §13.
+ * NO contact form (concept §6 OUT — fleet managers call, they don't fill forms).
+ *
+ * Primary phone CTA wraps in MagneticButton — the SINGLE MagneticButton
+ * site-wide per concept §4 / motion-plan §3. radius=100, strength=0.25.
+ */
+import MagneticButton from '@shared/motion-primitives/MagneticButton.astro';
+import type { PhoneEntry, EmailEntry } from '../../data/placeholder';
+
+interface Hours {
+  weekdayLabel: string;
+  weekdayValue: string;
+  saturdayLabel: string;
+  saturdayValue: string;
+  sundayLabel: string;
+  sundayValue: string;
+  heading: string;
+}
+
+interface Props {
+  eyebrow: string;
+  headline: string;
+  subhead: string;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  phones: PhoneEntry[];
+  emails: EmailEntry[];
+  addressLines: string[];
+  mapsLabel: string;
+  mapsHref: string;
+  hours: Hours;
+}
+
+const {
+  eyebrow, headline, subhead,
+  primaryCtaLabel, primaryCtaHref,
+  phones, emails, addressLines,
+  mapsLabel, mapsHref, hours,
+} = Astro.props;
+---
+
+<section class="contact section" id="contact" aria-labelledby="contact-title">
+  <div class="container contact__inner">
+    <header class="contact__header">
+      <p class="contact__eyebrow eyebrow">{eyebrow}</p>
+      <h2 id="contact-title" class="contact__title h2" data-animate>{headline}</h2>
+      <p class="contact__subhead lead">{subhead}</p>
+
+      <MagneticButton
+        href={primaryCtaHref}
+        radius={100}
+        strength={0.25}
+        labelStrength={1.2}
+        duration={0.6}
+        ease="power3.out"
+        class="contact__primary-cta"
+      >
+        <span class="contact__primary-prefix">CHIAMA</span>
+        <span class="contact__primary-num codice-tecnico">{primaryCtaLabel}</span>
+      </MagneticButton>
+    </header>
+
+    <div class="contact__grid">
+      <!-- Phones column -->
+      <div class="contact__col">
+        <h3 class="contact__col-heading">Linee dirette</h3>
+        <ul class="contact__list">
+          {phones.map((p) => (
+            <li class="contact__item">
+              <span class="contact__item-label">{p.label}</span>
+              <a href={p.href} class="contact__item-value codice-tecnico">{p.value}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Emails column -->
+      <div class="contact__col">
+        <h3 class="contact__col-heading">Email</h3>
+        <ul class="contact__list">
+          {emails.map((e) => (
+            <li class="contact__item">
+              <span class="contact__item-label">{e.label}</span>
+              <a href={e.href} class="contact__item-value contact__item-value--email">{e.value}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Address + map -->
+      <div class="contact__col">
+        <h3 class="contact__col-heading">Sede</h3>
+        <address class="contact__address">
+          {addressLines.map((line) => (
+            <span class="contact__address-line">{line}</span>
+          ))}
+        </address>
+        <a
+          href={mapsHref}
+          class="contact__map-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span>{mapsLabel}</span>
+          <span aria-hidden="true">→</span>
+        </a>
+      </div>
+
+      <!-- Hours -->
+      <div class="contact__col">
+        <h3 class="contact__col-heading">{hours.heading}</h3>
+        <dl class="contact__hours">
+          <dt>{hours.weekdayLabel}</dt>
+          <dd>{hours.weekdayValue}</dd>
+          <dt>{hours.saturdayLabel}</dt>
+          <dd>{hours.saturdayValue}</dd>
+          <dt class="contact__hours-closed">{hours.sundayLabel}</dt>
+          <dd class="contact__hours-closed">{hours.sundayValue}</dd>
+        </dl>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact {
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .contact__inner {
+    display: grid;
+    gap: var(--space-2xl);
+  }
+
+  .contact__header {
+    max-width: 880px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .contact__eyebrow { color: var(--color-accent); }
+
+  .contact__title {
+    color: var(--color-fg);
+    max-width: 24ch;
+  }
+
+  .contact__subhead {
+    color: var(--color-fg-muted);
+    max-width: 56ch;
+  }
+
+  .contact__primary-cta {
+    align-self: flex-start;
+    margin-top: var(--space-md);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.95rem 1.6rem;
+    background: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    color: var(--color-bg-dark);
+    border-radius: 0;
+    font-family: var(--font-display);
+    font-weight: 700;
+  }
+  .contact__primary-cta:hover {
+    background: var(--color-accent);
+  }
+  .contact__primary-cta:hover .magnetic-btn__label {
+    color: var(--color-bg-dark);
+  }
+  .contact__primary-prefix {
+    font-size: 0.85rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-right: 1px solid currentColor;
+    padding-right: 0.65rem;
+  }
+  .contact__primary-num {
+    color: var(--color-bg-dark);
+    font-size: 1.15rem;
+  }
+
+  .contact__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+    border-top: 1px solid var(--color-border);
+    padding-top: var(--space-xl);
+  }
+
+  .contact__col {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .contact__col-heading {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+    margin-bottom: 0.5rem;
+  }
+
+  .contact__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .contact__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .contact__item-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    color: var(--color-fg-faint);
+    text-transform: uppercase;
+  }
+
+  .contact__item-value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-h3);
+    color: var(--color-fg);
+    transition: color 180ms ease-out;
+  }
+  .contact__item-value:hover { color: var(--color-accent); }
+  .contact__item-value--email {
+    font-family: var(--font-body);
+    font-weight: 500;
+    font-size: var(--text-base);
+    word-break: break-all;
+  }
+
+  .contact__address {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    font-style: normal;
+    color: var(--color-fg);
+    font-family: var(--font-body);
+    font-weight: 400;
+    font-size: var(--text-base);
+    line-height: 1.4;
+  }
+
+  .contact__map-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: underline;
+    text-underline-offset: 4px;
+    text-decoration-color: var(--color-accent);
+  }
+
+  .contact__hours {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.4rem 1rem;
+    font-size: var(--text-base);
+    color: var(--color-fg-muted);
+  }
+  .contact__hours dt {
+    color: var(--color-fg);
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.04em;
+  }
+  .contact__hours dd { margin-left: 0; font-feature-settings: "tnum" 1, "lnum" 1; }
+  .contact__hours-closed { color: var(--color-fg-faint); }
+
+  @media (min-width: 700px) {
+    .contact__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+  @media (min-width: 1100px) {
+    .contact__grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+</style>

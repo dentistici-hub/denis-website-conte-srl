@@ -1,0 +1,97 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import NavConte from '@components/sections/NavConte.astro';
+import FooterRich from '@components/sections/FooterRich.astro';
+import { site, nav, footerColumns, schema } from '../data/placeholder';
+---
+
+<BaseLayout
+  title="Privacy"
+  description={`Privacy policy del sito ${site.name}`}
+  site={site}
+  schema={schema}
+>
+  <NavConte
+    brandName="Conte srl"
+    links={nav}
+    phoneDisplay="0831 382539"
+    phoneHref="tel:+390831382539"
+  />
+
+  <main id="main" class="legal-page">
+    <div class="container legal-page__inner">
+      <p class="eyebrow legal-page__eyebrow">Informativa sito</p>
+      <h1 class="display legal-page__title">Privacy</h1>
+      <div class="legal-page__body body">
+        <p>
+          Il sito di Conte srl non utilizza cookie analitici, di profilazione,
+          o di terze parti. Non raccoglie dati personali identificativi attraverso
+          form, newsletter o tracciamenti.
+        </p>
+        <p>
+          I caratteri tipografici (Archivo, Archivo Narrow) sono ospitati
+          localmente tramite Fontsource — nessun fetch verso CDN di terze parti.
+          Le immagini sono servite dallo stesso dominio del sito.
+        </p>
+        <p>
+          Per richieste relative ai dati personali — tachigrafi, registrazioni
+          di intervento, contatti commerciali — scrivete a
+          <a href="mailto:info@conte-srl.com">info@conte-srl.com</a> oppure
+          chiamate il <a href="tel:+390831382539">0831 382539</a>.
+        </p>
+        <p>
+          Titolare del trattamento: Conte srl, Via 2 Giugno — Z.I., 72013 Ceglie
+          Messapica (BR), P.IVA 01943880748.
+        </p>
+        <p class="legal-page__updated">
+          Ultimo aggiornamento: {site.lastUpdated}.
+        </p>
+      </div>
+    </div>
+  </main>
+
+  <FooterRich
+    brandName="Conte srl"
+    tagline="Officina veicoli industriali — zona industriale Ceglie Messapica, dal 1998 circa."
+    columns={footerColumns}
+    legalLine="© 2026 Conte srl — P.IVA 01943880748 — sede legale Via 2 Giugno Z.I., 72013 Ceglie Messapica (BR)."
+    legalLinks={[
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Cookie', href: '/cookie-policy' },
+    ]}
+    logoSrc="/images/logo.png"
+  />
+</BaseLayout>
+
+<style>
+  .legal-page {
+    background: var(--color-bg);
+    padding-top: calc(72px + var(--space-2xl));
+    padding-bottom: var(--space-2xl);
+  }
+  .legal-page__inner {
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .legal-page__eyebrow {
+    color: var(--color-accent);
+  }
+  .legal-page__title {
+    font-size: clamp(2.5rem, 6vw, 5rem);
+    line-height: 0.95;
+    color: var(--color-fg);
+  }
+  .legal-page__body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    color: var(--color-fg-muted);
+    max-width: 62ch;
+  }
+  .legal-page__updated {
+    color: var(--color-fg-faint);
+    font-size: var(--text-sm);
+  }
+</style>

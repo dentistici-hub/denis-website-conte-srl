@@ -1,0 +1,191 @@
+{
+  "company": {
+    "name": "Conte srl",
+    "slug": "conte-srl",
+    "tagline": "Esperienza, precisione e celerita al servizio del cliente",
+    "industry": "construction",
+    "industry_confidence": 0.55,
+    "language": "it",
+    "founding_year": null,
+    "location": {
+      "address": "Via 2 Giugno, Z.I.",
+      "city": "Ceglie Messapica",
+      "country": "Italy",
+      "lat": null,
+      "lng": null
+    },
+    "contact": {
+      "phone": "+39 0831 382539",
+      "email": "info@conte-srl.com",
+      "whatsapp": null,
+      "social": {
+        "linkedin": null,
+        "facebook": null,
+        "instagram": null
+      }
+    }
+  },
+  "content": {
+    "services": [
+      {
+        "name": "Banco prova freni",
+        "description": "Banco prova freni per veicoli industriali e autovetture.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Banco prova giochi",
+        "description": "Banco prova giochi per la verifica degli organi di sterzo e sospensione.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Opacimetro omologato",
+        "description": "Opacimetro omologato per le prove ufficiali di emissioni.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Tester diagnostico TEXA",
+        "description": "Diagnosi elettronica con strumentazione TEXA.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Revisione cambi",
+        "description": "Revisione e riparazione di cambi per veicoli industriali e autovetture.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Revisione differenziali",
+        "description": "Revisione e riparazione di differenziali.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Revisione impianti frenanti",
+        "description": "Revisione e riparazione di impianti frenanti.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Revisione motori",
+        "description": "Revisione e riparazione di motori.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Interventi esterni",
+        "description": "Interventi di assistenza tecnica presso il cliente.",
+        "confidence": 1.0
+      },
+      {
+        "name": "Magazzino ricambi",
+        "description": "Vasta scorta di prodotti e parti di ricambio.",
+        "confidence": 1.0
+      }
+    ],
+    "team": [],
+    "testimonials": [],
+    "about": "Conte srl opera nella zona industriale di Ceglie Messapica (BR) offrendo servizi di revisione, riparazione e diagnosi per veicoli industriali e autovetture. L'azienda utilizza prodotti e attrezzature all'avanguardia per garantire tutela e garanzie al cliente, con esperienza, precisione e celerita.",
+    "meta_description": null
+  },
+  "assets": {
+    "logo": null,
+    "images": [
+      {
+        "url": "https://www.conte-srl.com/images/index1.jpg",
+        "local_path": "scraped-assets/index1.jpg",
+        "alt": "Conte srl - immagine principale sito",
+        "width": 719,
+        "height": 453,
+        "usable": true
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_1.png",
+        "local_path": "scraped-assets/slideshow_1.png",
+        "alt": "Officina Conte srl - slide 1",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_2.png",
+        "local_path": "scraped-assets/slideshow_2.png",
+        "alt": "Officina Conte srl - slide 2",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_3.png",
+        "local_path": "scraped-assets/slideshow_3.png",
+        "alt": "Officina Conte srl - slide 3",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_4.png",
+        "local_path": "scraped-assets/slideshow_4.png",
+        "alt": "Officina Conte srl - slide 4",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_5.png",
+        "local_path": "scraped-assets/slideshow_5.png",
+        "alt": "Officina Conte srl - slide 5",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_6.png",
+        "local_path": "scraped-assets/slideshow_6.png",
+        "alt": "Officina Conte srl - slide 6",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_7.png",
+        "local_path": "scraped-assets/slideshow_7.png",
+        "alt": "Officina Conte srl - slide 7",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_8.png",
+        "local_path": "scraped-assets/slideshow_8.png",
+        "alt": "Officina Conte srl - slide 8",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_9.png",
+        "local_path": "scraped-assets/slideshow_9.png",
+        "alt": "Officina Conte srl - slide 9",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      },
+      {
+        "url": "https://www.conte-srl.com/slideshow/home_0_10.png",
+        "local_path": "scraped-assets/slideshow_10.png",
+        "alt": "Officina Conte srl - slide 10",
+        "width": 325,
+        "height": 244,
+        "usable": false
+      }
+    ]
+  },
+  "source_quality": "thin",
+  "source_url": "https://www.conte-srl.com/home.html",
+  "_notes": [
+    "Site is a 2008-vintage Italian static HTML site (Last-Modified Feb 2008 on assets).",
+    "Industry classification is ambiguous: services map to 'automotive workshop / heavy vehicle repair' which is not in the allowed enum (tech / construction / restaurant / professional-services / other). Closest match is 'construction' due to industrial/heavy-equipment overlap, but confidence is low (0.55). Master agent should ask Denis which starter to use.",
+    "Only one image meets the >=400px width threshold (index1.jpg). All slideshow images are 325x244 and were downloaded for reference but flagged usable=false. Asset-gatherer will need to source heavy-vehicle-workshop stock images.",
+    "No team, testimonials, founding year, or social media on site.",
+    "Three published email addresses: info@conte-srl.com, conte.magazzino@libero.it, conte.contesrl@libero.it. Primary listed as info@.",
+    "P.IVA on contact page: 01943880748.",
+    "Pages confirmed alive: /home.html, /contatti.html, /dove_siamo.html. Dead: /azienda.html, /chi_siamo.html, /servizi.html (all 404). /lang1/index.html also 404.",
+    "Hours: Lun-Ven 8:30-13:30 / 15:30-19:30, Sab 8:30-13:00."
+  ]
+}

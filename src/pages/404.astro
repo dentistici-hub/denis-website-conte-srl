@@ -1,0 +1,109 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import NavConte from '@components/sections/NavConte.astro';
+import FooterRich from '@components/sections/FooterRich.astro';
+import { site, nav, footerColumns, schema } from '../data/placeholder';
+
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<BaseLayout
+  title="404 — Pagina non trovata"
+  description="Pagina non trovata"
+  site={site}
+  schema={schema}
+>
+  <NavConte
+    brandName="Conte srl"
+    links={nav}
+    phoneDisplay="0831 382539"
+    phoneHref="tel:+390831382539"
+  />
+
+  <main id="main" class="not-found">
+    <div class="container not-found__inner">
+      <p class="eyebrow not-found__eyebrow">Errore 404</p>
+      <h1 class="display not-found__title">Questa pagina non esiste.</h1>
+      <p class="not-found__sub lead">
+        Tornate alla home, oppure chiamate l'officina al
+        <span class="codice-tecnico">0831 382539</span>.
+      </p>
+      <div class="not-found__actions">
+        <a class="not-found__cta not-found__cta--primary" href={`${baseUrl}/`}>Torna alla home</a>
+        <a class="not-found__cta not-found__cta--secondary codice-tecnico" href="tel:+390831382539">0831 382539</a>
+      </div>
+    </div>
+  </main>
+
+  <FooterRich
+    brandName="Conte srl"
+    tagline="Officina veicoli industriali — zona industriale Ceglie Messapica, dal 1998 circa."
+    columns={footerColumns}
+    legalLine="© 2026 Conte srl — P.IVA 01943880748 — sede legale Via 2 Giugno Z.I., 72013 Ceglie Messapica (BR)."
+    legalLinks={[
+      { label: 'Privacy', href: '/privacy' },
+      { label: 'Cookie', href: '/cookie-policy' },
+    ]}
+    logoSrc="/images/logo.png"
+  />
+</BaseLayout>
+
+<style>
+  .not-found {
+    background: var(--color-bg);
+    padding-top: calc(72px + var(--space-2xl));
+    padding-bottom: var(--space-2xl);
+    min-height: 60vh;
+  }
+  .not-found__inner {
+    max-width: 760px;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .not-found__eyebrow {
+    color: var(--color-accent);
+  }
+  .not-found__title {
+    font-size: clamp(2.75rem, 7vw, 6rem);
+    line-height: 0.95;
+    color: var(--color-fg);
+    max-width: 18ch;
+  }
+  .not-found__sub {
+    color: var(--color-fg-muted);
+    max-width: 56ch;
+  }
+  .not-found__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-top: var(--space-md);
+  }
+  .not-found__cta {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.95rem 1.4rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: background 180ms ease-out, color 180ms ease-out;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+  .not-found__cta--primary {
+    background: var(--color-accent);
+    color: var(--color-bg-dark);
+  }
+  .not-found__cta--primary:hover { background: var(--color-accent-hover); }
+  .not-found__cta--secondary {
+    border: 1px solid var(--color-border-strong);
+    color: var(--color-fg);
+    text-transform: none;
+  }
+  .not-found__cta--secondary:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+</style>

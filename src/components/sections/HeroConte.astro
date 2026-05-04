@@ -1,0 +1,303 @@
+---
+/**
+ * Conte srl — Hero (bespoke, hero-stats variant)
+ * Asymmetric: copy left, duotone hero photo right (~60/40), stats band below.
+ * NOT centered-stack. NOT a thumbs-up mechanic over a daylight photo.
+ *
+ * Stats reveal via shared ClipMaskReveal at viewport entry — motion-plan §7
+ * commits 800ms power3.out, 0.05s stagger, 120ms delay. The shared primitive
+ * accepts those props verbatim.
+ *
+ * Hero image is treated via DuotonePhoto (charcoal+saffron). KenBurnsImage
+ * is NOT used here — concept §4 reserves KenBurns for the about-section
+ * background. Hero photo stays still per motion-plan §2.
+ *
+ * Headline / subhead / CTAs / stats — copy.md §5+§6 verbatim.
+ */
+import DuotonePhoto from '@shared/motion-primitives/DuotonePhoto.astro';
+import ClipMaskReveal from '@shared/motion-primitives/ClipMaskReveal.astro';
+import type { HeroStat } from '../../data/placeholder';
+
+interface CTA {
+  label: string;
+  href: string;
+}
+
+interface Props {
+  eyebrow: string;
+  headline: string;
+  subhead: string;
+  primaryCta: CTA;
+  secondaryCta: CTA;
+  stats: HeroStat[];
+  heroImageSrc: string;
+  heroImageAlt: string;
+}
+
+const {
+  eyebrow,
+  headline,
+  subhead,
+  primaryCta,
+  secondaryCta,
+  stats,
+  heroImageSrc,
+  heroImageAlt,
+} = Astro.props;
+
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+const resolvedHeroSrc = heroImageSrc.startsWith('/') ? `${baseUrl}${heroImageSrc}` : heroImageSrc;
+
+/** Helper — split codice into a styled span for ".I3 044 1168" + plain otherwise. */
+const I3_CODICE = 'I3 044 1168';
+---
+
+<section class="hero" id="hero" aria-labelledby="hero-title">
+  <div class="hero__layout container">
+    <div class="hero__copy">
+      <p class="hero__eyebrow eyebrow">{eyebrow}</p>
+      <h1 id="hero-title" class="hero__title h1">{headline}</h1>
+      <p class="hero__subhead lead">
+        {/* Render the codice as set type inline. */}
+        {subhead.split(I3_CODICE).map((part, idx, arr) => (
+          <>
+            {part}
+            {idx < arr.length - 1 && (
+              <span class="codice-tecnico">{I3_CODICE}</span>
+            )}
+          </>
+        ))}
+      </p>
+      <div class="hero__actions">
+        <a href={primaryCta.href} class="hero__cta hero__cta--primary">
+          <span class="hero__cta-prefix">Chiama</span>
+          <span class="hero__cta-num">{primaryCta.label}</span>
+        </a>
+        <a href={secondaryCta.href} class="hero__cta hero__cta--secondary">
+          <span>{secondaryCta.label}</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="hero__visual">
+      <div class="hero__visual-frame">
+        <DuotonePhoto
+          src={resolvedHeroSrc}
+          alt={heroImageAlt}
+          shadow="#15171A"
+          highlight="#F4C430"
+          intensity={0.72}
+          aspectRatio="3 / 4"
+        />
+      </div>
+      <div class="hero__visual-meta">
+        <span>Z.I. CEGLIE MESSAPICA</span>
+        <span>72013 (BR)</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats band — ClipMaskReveal stagger per motion-plan §7. -->
+  <div class="hero__stats-band" aria-label="Numeri verificabili">
+    <div class="container hero__stats-grid">
+      {stats.map((stat, idx) => (
+        <ClipMaskReveal
+          direction="up"
+          duration={0.8}
+          ease="power3.out"
+          delay={0.12 + idx * 0.05}
+          start="top 90%"
+          class="hero__stat-cell"
+        >
+          <div class="hero__stat">
+            {stat.isCode ? (
+              <span class="hero__stat-value codice-tecnico">{stat.value}</span>
+            ) : (
+              <span class="hero__stat-value display">
+                {stat.value}
+                {stat.unit && <span class="hero__stat-unit"> {stat.unit}</span>}
+              </span>
+            )}
+            <span class="hero__stat-label">{stat.label}</span>
+          </div>
+        </ClipMaskReveal>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    background: var(--color-bg-dark);
+    padding-top: calc(72px + var(--space-xl));    /* nav clearance */
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+
+  .hero__layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+    align-items: end;
+    padding-bottom: var(--space-2xl);
+  }
+
+  .hero__copy {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-width: 100%;
+  }
+
+  .hero__eyebrow {
+    color: var(--color-accent);
+    margin-bottom: var(--space-xs);
+  }
+
+  .hero__title {
+    color: var(--color-fg);
+    max-width: 18ch;          /* type-system §5 — display max-width 18ch */
+  }
+
+  .hero__subhead {
+    color: var(--color-fg-muted);
+    max-width: 56ch;
+    margin-top: 0.5rem;
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-top: var(--space-md);
+  }
+
+  .hero__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.95rem 1.4rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    text-transform: none;
+    transition: background 180ms ease-out, color 180ms ease-out, border-color 180ms ease-out;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  .hero__cta--primary {
+    background: var(--color-accent);
+    color: var(--color-bg-dark);
+    border: 1px solid var(--color-accent);
+  }
+  .hero__cta--primary:hover {
+    background: var(--color-accent-hover);
+    border-color: var(--color-accent-hover);
+  }
+  .hero__cta-prefix {
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-right: 1px solid currentColor;
+    padding-right: 0.65rem;
+  }
+  .hero__cta-num {
+    letter-spacing: 0.01em;
+  }
+
+  .hero__cta--secondary {
+    background: transparent;
+    color: var(--color-fg);
+    border: 1px solid var(--color-border-strong);
+    font-weight: 500;
+    text-transform: none;
+  }
+  .hero__cta--secondary:hover {
+    border-color: var(--color-fg);
+    color: var(--color-accent);
+  }
+
+  .hero__visual {
+    position: relative;
+    align-self: stretch;
+    max-width: 100%;
+  }
+  .hero__visual-frame {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+  .hero__visual-frame :global(.duotone) {
+    aspect-ratio: 3 / 4;
+  }
+  .hero__visual-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.7rem;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+  }
+
+  .hero__stats-band {
+    position: relative;
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border-strong);
+    border-bottom: 1px solid var(--color-border-strong);
+    padding-block: var(--space-lg);
+  }
+
+  .hero__stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--space-lg);
+  }
+
+  .hero__stat-cell { display: block; }
+
+  .hero__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+    border-left: 2px solid var(--color-accent);
+    padding-left: 1rem;
+  }
+
+  .hero__stat-value {
+    font-size: clamp(2.25rem, 4.2vw, 3.75rem);
+    line-height: 1;
+    color: var(--color-accent);
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+
+  .hero__stat-unit {
+    font-size: clamp(1rem, 1.5vw, 1.4rem);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    text-transform: lowercase;
+    color: var(--color-fg-muted);
+  }
+
+  .hero__stat-label {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    line-height: 1.35;
+    max-width: 32ch;
+  }
+
+  /* Asymmetric 60/40 layout from desktop up — Layout Move 2 (asymmetric hero). */
+  @media (min-width: 900px) {
+    .hero__layout {
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: var(--space-2xl);
+    }
+    .hero__stats-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+</style>

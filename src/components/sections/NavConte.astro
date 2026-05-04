@@ -1,0 +1,248 @@
+---
+/**
+ * Conte srl — Nav (bespoke)
+ * Sticky top, brand wordmark + 4 nav anchors + phone-as-CTA per copy.md §4.
+ * Phone CTA shows the number verbatim (NOT "Chiama") — fleet manager on SS7
+ * recognizes the digits and taps.
+ */
+import type { NavLink } from '@shared/types/content';
+
+interface Props {
+  brandName: string;
+  links: NavLink[];
+  phoneDisplay: string;
+  phoneHref: string;
+}
+
+const { brandName, links, phoneDisplay, phoneHref } = Astro.props;
+---
+
+<header class="nav-conte" id="nav" aria-label="Navigazione principale">
+  <div class="nav-conte__inner container">
+    <a href="/" class="nav-conte__brand" aria-label="Conte srl — torna alla home">
+      <span class="nav-conte__brand-text">{brandName}</span>
+      <span class="nav-conte__brand-meta">officina veicoli industriali</span>
+    </a>
+
+    <nav class="nav-conte__links" aria-label="Sezioni del sito">
+      <ul class="nav-conte__list">
+        {links.map((l) => (
+          <li><a href={l.href} class="nav-conte__link">{l.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+
+    <a
+      href={phoneHref}
+      class="nav-conte__cta"
+      aria-label={`Chiama l'officina al numero ${phoneDisplay.split('').join(' ')}`}
+    >
+      <span class="nav-conte__cta-icon" aria-hidden="true">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+          <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.06 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+        </svg>
+      </span>
+      <span class="nav-conte__cta-num">{phoneDisplay}</span>
+    </a>
+
+    <button
+      class="nav-conte__burger"
+      id="nav-toggle"
+      aria-expanded="false"
+      aria-controls="nav-mobile"
+      aria-label="Apri menu"
+    >
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+
+  <div class="nav-conte__mobile" id="nav-mobile" aria-hidden="true">
+    <nav>
+      <ul>
+        {links.map((l) => (
+          <li><a href={l.href} class="nav-conte__mobile-link display">{l.label}</a></li>
+        ))}
+      </ul>
+      <a href={phoneHref} class="nav-conte__mobile-phone codice-tecnico">{phoneDisplay}</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav-conte {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: var(--z-header);
+    background: rgba(21, 23, 26, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--color-border);
+    transition: background 220ms ease-out, border-color 220ms ease-out;
+  }
+  .nav-conte.is-scrolled {
+    background: var(--color-bg-dark);
+    border-bottom-color: var(--color-border-strong);
+  }
+
+  .nav-conte__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    height: 72px;
+  }
+
+  .nav-conte__brand {
+    display: flex;
+    flex-direction: column;
+    line-height: 1;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+  .nav-conte__brand-text {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.25rem;
+    letter-spacing: -0.01em;
+    color: var(--color-fg);
+  }
+  .nav-conte__brand-meta {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.65rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+  }
+
+  .nav-conte__links { display: none; }
+  .nav-conte__list {
+    display: flex;
+    gap: clamp(1rem, 2vw, 2.5rem);
+    list-style: none;
+  }
+  .nav-conte__link {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.85rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    padding-block: 4px;
+    border-bottom: 1px solid transparent;
+    transition: color 180ms ease-out, border-color 180ms ease-out;
+  }
+  .nav-conte__link:hover {
+    color: var(--color-accent);
+    border-bottom-color: var(--color-accent);
+  }
+
+  .nav-conte__cta {
+    display: none;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    font-size: 0.95rem;
+    transition: background 180ms ease-out, color 180ms ease-out;
+    font-feature-settings: "tnum" 1, "lnum" 1;
+  }
+  .nav-conte__cta:hover {
+    background: var(--color-accent);
+    color: var(--color-bg-dark);
+  }
+  .nav-conte__cta-icon { display: inline-flex; }
+
+  .nav-conte__burger {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 26px; height: 18px;
+    background: none; border: none; padding: 0;
+    cursor: pointer;
+  }
+  .nav-conte__burger span {
+    display: block;
+    width: 100%; height: 2px;
+    background: var(--color-fg);
+    transition: transform 220ms ease-out, opacity 180ms;
+  }
+  .nav-conte__burger[aria-expanded="true"] span:nth-child(1) { transform: translateY(8px) rotate(45deg); }
+  .nav-conte__burger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .nav-conte__burger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-8px) rotate(-45deg); }
+
+  .nav-conte__mobile {
+    position: fixed;
+    top: 72px; left: 0; right: 0; bottom: 0;
+    background: var(--color-bg-dark);
+    z-index: var(--z-overlay);
+    padding: var(--space-xl) var(--gutter);
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-8px);
+    transition: opacity 240ms ease-out, transform 240ms ease-out;
+  }
+  .nav-conte__mobile[aria-hidden="false"] {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+  .nav-conte__mobile ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-bottom: var(--space-lg);
+  }
+  .nav-conte__mobile-link {
+    font-size: clamp(2rem, 7vw, 3rem);
+    color: var(--color-fg);
+    font-weight: 700;
+  }
+  .nav-conte__mobile-link:hover { color: var(--color-accent); }
+  .nav-conte__mobile-phone {
+    font-size: clamp(1.5rem, 5vw, 2.25rem);
+    align-self: flex-start;
+  }
+
+  @media (min-width: 900px) {
+    .nav-conte__links { display: flex; }
+    .nav-conte__cta { display: inline-flex; }
+    .nav-conte__burger { display: none; }
+    .nav-conte__mobile { display: none; }
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('nav-toggle');
+  const mobile = document.getElementById('nav-mobile');
+  const nav = document.getElementById('nav');
+
+  if (toggle && mobile) {
+    toggle.addEventListener('click', () => {
+      const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+      toggle.setAttribute('aria-expanded', String(!isOpen));
+      mobile.setAttribute('aria-hidden', String(isOpen));
+      document.body.style.overflow = isOpen ? '' : 'hidden';
+    });
+    mobile.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        toggle.setAttribute('aria-expanded', 'false');
+        mobile.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      });
+    });
+  }
+
+  if (nav) {
+    window.addEventListener('scroll', () => {
+      nav.classList.toggle('is-scrolled', window.scrollY > 20);
+    }, { passive: true });
+  }
+</script>

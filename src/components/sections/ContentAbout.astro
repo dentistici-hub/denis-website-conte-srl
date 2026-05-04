@@ -1,0 +1,144 @@
+---
+/**
+ * Conte srl — About / Chi siamo
+ * Editorial about block per copy.md §11. Mixed-alignment section
+ * (Layout Move 7): eyebrow + title left, body left, atmospheric stat
+ * column right at desktop. Optional small DuotonePhoto on the right column
+ * (about.jpg — Mercedes cab-tilt) — supporting visual, not headline.
+ *
+ * Single fade-up on first paragraph (motion-plan §2). KenBurns lives in
+ * trust block, not here — duplicating would dilute it.
+ */
+import DuotonePhoto from '@shared/motion-primitives/DuotonePhoto.astro';
+
+interface Props {
+  eyebrow: string;
+  headline: string;
+  body: string;
+  factPills?: { label: string; value: string }[];
+  sideImageSrc?: string;
+  sideImageAlt?: string;
+}
+
+const { eyebrow, headline, body, factPills = [], sideImageSrc, sideImageAlt } = Astro.props;
+const baseUrl = import.meta.env.BASE_URL.replace(/\/$/, '');
+const resolvedSideSrc = sideImageSrc
+  ? (sideImageSrc.startsWith('/') ? `${baseUrl}${sideImageSrc}` : sideImageSrc)
+  : undefined;
+---
+
+<section class="about section" id="about" aria-labelledby="about-title">
+  <div class="container about__inner">
+    <div class="about__copy">
+      <p class="about__eyebrow eyebrow">{eyebrow}</p>
+      <h2 id="about-title" class="about__title h2" data-animate>{headline}</h2>
+      <p class="about__body body" data-animate>{body}</p>
+    </div>
+
+    <aside class="about__sidebar">
+      {resolvedSideSrc && sideImageAlt && (
+        <div class="about__photo">
+          <DuotonePhoto
+            src={resolvedSideSrc}
+            alt={sideImageAlt}
+            shadow="#15171A"
+            highlight="#F4C430"
+            intensity={0.78}
+            aspectRatio="4 / 5"
+          />
+        </div>
+      )}
+
+      {factPills.length > 0 && (
+        <ul class="about__facts" aria-label="Riferimenti operativi">
+          {factPills.map((p) => (
+            <li class="about__fact">
+              <span class="about__fact-label">{p.label}</span>
+              <span class="about__fact-value">{p.value}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </aside>
+  </div>
+</section>
+
+<style>
+  .about {
+    background: var(--color-bg);
+  }
+
+  .about__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-xl);
+  }
+
+  .about__copy {
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .about__eyebrow {
+    color: var(--color-accent);
+  }
+  .about__title {
+    color: var(--color-fg);
+    max-width: 22ch;
+  }
+  .about__body {
+    color: var(--color-fg-muted);
+    max-width: 62ch;
+  }
+
+  .about__sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+  .about__photo {
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+  }
+  .about__photo :global(.duotone) {
+    aspect-ratio: 4 / 5;
+  }
+  .about__facts {
+    list-style: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--color-border);
+  }
+  .about__fact {
+    display: flex;
+    justify-content: space-between;
+    gap: var(--space-md);
+    align-items: baseline;
+    padding-block: 0.85rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .about__fact-label {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-fg-faint);
+  }
+  .about__fact-value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: var(--text-base);
+    color: var(--color-fg);
+    text-align: right;
+  }
+
+  @media (min-width: 900px) {
+    .about__inner {
+      grid-template-columns: minmax(0, 2.2fr) minmax(0, 1fr);
+      gap: var(--space-2xl);
+    }
+  }
+</style>

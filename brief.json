@@ -1,0 +1,148 @@
+{
+  "starter": "construction",
+  "starter_confidence": 0.7,
+  "design": {
+    "palette": {
+      "bg": "#15171A",
+      "fg": "#E8E6E1",
+      "accent": "#F4C430",
+      "accent_hover": "#CFA628",
+      "accent_dark": "#9E7F1F",
+      "accent_secondary": "#5B7A8C",
+      "source": "cheat-sheet",
+      "contrast_checks": {
+        "fg_on_bg": 14.4,
+        "accent_on_bg": 10.93,
+        "accent_hover_on_bg": 7.81,
+        "accent_dark_on_bg": 4.73,
+        "accent_secondary_on_bg_note": "3.94 — AA Large only, decorative use, never body text"
+      }
+    },
+    "typography": {
+      "display": {
+        "family": "Archivo Narrow",
+        "weight": 700,
+        "source_url": "https://fontsource.org/fonts/archivo-narrow"
+      },
+      "body": {
+        "family": "Archivo",
+        "weight": 400,
+        "source_url": "https://fontsource.org/fonts/archivo"
+      }
+    },
+    "animation_intensity": "medium",
+    "signature_visual": "Horizontal scroll-track of the workshop chain — 5 chapters (Diagnostica TEXA → Banco prova freni + opacimetro → Revisione motori e cambi → Tachigrafi digitali I3 044 1168 → Interventi esterni), each chapter a duotone photograph in charcoal+saffron of the actual bay, the actual tester, the actual heavy vehicle on the lift. Pinned ScrollTrigger driving HorizontalScrollTrack with the operational chain numbered 01–05 in oversized Archivo Narrow.",
+    "design_notes": "Construction starter is the closest enum match but the design language pulls deliberately from professional-services / editorial-tech, NOT from generic construction tropes — there are no hard hats, no scaffolding, no 'costruiamo il tuo futuro' fluff. The reference is the Krefer industrial-recycling build (May 2026): charcoal bg, saffron accent, brutalist Archivo single-family, horizontal scroll-track replacing a missing portfolio surface. Three intentional deviations from the construction cheat-sheet default: (1) invert palette to charcoal + saffron — orange-on-white reads 'site under construction' not 'industrial workshop for autotrasportatori'; (2) Archivo Narrow / Archivo single-family instead of Fjalla One + Source Sans — single-family brutalism reads as signage and torque-spec sheets, not as a brochure; (3) lead with TrustHeritage + TrustStats + the official Centro Tecnico Tachigrafi badge BEFORE services, because B2B fleet operators verify MIT/Unioncamere authorization first. Saturated yellow (saffron, between amber and hi-vis) ties to road-signage, safety vests, and Renault Trucks corporate yellow without being a literal cliché. Drop team and testimonials sections entirely — site has no team data and zero Google reviews; fabricating either would kill credibility with the only audience that matters (transport-fleet managers who already know the workshop).",
+    "component_overrides": [
+      { "slot": "nav", "variant": "nav-phone", "reason": "Click-to-call is the only CTA that matters for autotrasportatori on the road — phone goes top-right, sticky." },
+      { "slot": "hero", "variant": "hero-stats", "reason": "Lead with verifiable numbers: 25+ anni, codice tecnico I3 044 1168, 3 telefoni operativi, Lun-Sab orario continuato. No stock photo of mechanics shaking hands." },
+      { "slot": "trust", "variant": "trust-heritage", "reason": "25+ years in the same Z.I. address is the trust signal. Editorial heritage block goes immediately after hero." },
+      { "slot": "services", "variant": "services-process", "reason": "Process layout fits the diagnostic-to-intervention chain better than tile grid — accetta veicolo → diagnostica TEXA → preventivo → intervento → consegna. Each service is a numbered step." },
+      { "slot": "content", "variant": "content-about", "reason": "Brief 'Chi siamo' block tying the workshop to Ceglie Messapica + Brindisi + heavy-vehicle Puglia corridor — needed because the original site has no narrative. Confidence 0.7 — based on directory + Camera di Commercio sources." },
+      { "slot": "contact", "variant": "contact-split", "reason": "Three phones + three emails + lat/lng map for fleet-vehicle drivers who need to find Z.I. Ceglie Messapica from the SS7. ContactQuoteForm overkill for this audience." },
+      { "slot": "footer", "variant": "footer-rich", "reason": "Footer carries P.IVA, codice tecnico tachigrafi, MCTC revisione status, full hours, three phones, three emails — the audit trail every transport-fleet auditor checks." }
+    ],
+    "section_order": ["hero", "trust", "services", "content", "contact"]
+  },
+  "enriched_content": {
+    "services": [
+      { "name": "Banco prova freni", "description": "Banco prova freni omologato per veicoli industriali e autovetture. Verifica e taratura impianto frenante.", "confidence": 1.0 },
+      { "name": "Banco prova giochi", "description": "Verifica organi di sterzo e sospensione su autocarri e mezzi pesanti.", "confidence": 1.0 },
+      { "name": "Opacimetro omologato", "description": "Prove ufficiali emissioni motori diesel, attrezzatura omologata MCTC.", "confidence": 1.0 },
+      { "name": "Diagnostica TEXA", "description": "Diagnosi elettronica avanzata su centraline veicoli industriali e leggeri con strumentazione TEXA.", "confidence": 1.0 },
+      { "name": "Centro tecnico tachigrafi digitali e intelligenti", "description": "Centro autorizzato Camera di Commercio Brindisi (codice I3 044 1168). Installazione, attivazione, calibratura, controllo periodico e riparazione tachigrafi digitali, intelligenti e analogici. Autorizzazione DM 10 agosto 2007 art. 2 lett. i).", "confidence": 0.85, "source": "https://www.metrologialegale.unioncamere.it/tachigrafi/centri-tecnici" },
+      { "name": "Revisione motori, cambi e differenziali", "description": "Revisione e riparazione motori, cambi e differenziali per veicoli industriali e autovetture.", "confidence": 1.0 },
+      { "name": "Revisione impianti frenanti", "description": "Manutenzione e ripristino impianti frenanti pneumatici e idraulici per mezzi pesanti.", "confidence": 1.0 },
+      { "name": "Lavorazione balestre", "description": "Riparazione e sostituzione balestre per autocarri e rimorchi.", "confidence": 0.7, "source": "https://www.paginegialle.it/conte-srl-riparazione-autoveicoli-industriali-ceglie-messapica-br" },
+      { "name": "Saldature specialistiche", "description": "Saldature su telai, scocche e componenti meccanici di veicoli industriali.", "confidence": 0.7, "source": "https://www.paginegialle.it/conte-srl-riparazione-autoveicoli-industriali-ceglie-messapica-br" },
+      { "name": "Servizio climatizzazione", "description": "Manutenzione, ricarica e riparazione impianti di climatizzazione cabine veicoli industriali.", "confidence": 0.7, "source": "https://www.paginegialle.it/conte-srl-riparazione-autoveicoli-industriali-ceglie-messapica-br" },
+      { "name": "Trasmissione idraulica e attrezzature movimento terra", "description": "Servizio su trasmissioni idrauliche e attrezzature per mezzi movimento terra.", "confidence": 0.7, "source": "https://www.paginegialle.it/conte-srl-riparazione-autoveicoli-industriali-ceglie-messapica-br" },
+      { "name": "Interventi esterni", "description": "Assistenza tecnica on-site presso il cliente per fermo macchina e interventi non trasportabili in officina.", "confidence": 1.0 },
+      { "name": "Magazzino ricambi", "description": "Vasta scorta di ricambi per veicoli industriali — frizioni, freni, componentistica meccanica e idraulica.", "confidence": 1.0 }
+    ],
+    "team": [],
+    "about": {
+      "text": "Conte srl opera da oltre 25 anni nella zona industriale di Ceglie Messapica, in provincia di Brindisi, come officina specializzata nella revisione, riparazione e diagnosi di veicoli industriali e autovetture. L'azienda è centro tecnico autorizzato Camera di Commercio per tachigrafi digitali, intelligenti e analogici (codice I3 044 1168) e centro revisioni iscritto MCTC. Le attrezzature in dotazione — banco prova freni, banco prova giochi, opacimetro omologato, diagnostica elettronica TEXA — coprono l'intero ciclo di verifica e ripristino su autocarri, mezzi pesanti, autobus e veicoli leggeri. Il riferimento operativo per autotrasportatori, flotte e operatori dei trasporti del corridoio Brindisi-Taranto-Lecce.",
+      "confidence": 0.85,
+      "source": "https://www.metrologialegale.unioncamere.it/tachigrafi/centri-tecnici + https://www.paginegialle.it/conte-srl-riparazione-autoveicoli-industriali-ceglie-messapica-br + https://www.revisione24.it/centri_revisioni/scheda_centro_revisioni/conte-srl/39211"
+    },
+    "stats": [
+      { "label": "Anni di attività in zona industriale Ceglie Messapica", "value": "25+", "confidence": 0.85, "source": "PagineGialle + virgilio + multiple directories citing 'da oltre 25 anni'" },
+      { "label": "Codice centro tecnico tachigrafi (Unioncamere)", "value": "I3 044 1168", "confidence": 1.0, "source": "https://www.metrologialegale.unioncamere.it/tachigrafi/centri-tecnici" },
+      { "label": "Linee operative dirette", "value": "3 telefoni", "confidence": 1.0, "source": "0831 382539 (fisso), 333 7076796 (cellulare), 392 9100093 (cellulare)" },
+      { "label": "Tipologie di tachigrafo gestite", "value": "Digitali, intelligenti, analogici", "confidence": 1.0, "source": "Unioncamere — autorizzazione DM 10 agosto 2007 art. 2 lett. i + estensione tachigrafi intelligenti 24/01/2022 + analogici 26/05/2025" },
+      { "label": "Apertura settimanale", "value": "Lun-Sab orario continuato", "confidence": 1.0, "source": "Lun-Ven 8:30-13:30 / 15:30-19:30, Sab 8:30-13:00" }
+    ],
+    "founding_story": {
+      "text": "Operativa da oltre 25 anni nella zona industriale di Ceglie Messapica — un periodo che colloca l'apertura intorno alla metà degli anni '90 / fine anni '90. Anno esatto di fondazione non risulta da fonti pubbliche; richiede conferma diretta dal cliente.",
+      "confidence": 0.5
+    },
+    "certifications": [
+      { "name": "Centro Tecnico Tachigrafi (Camera di Commercio Brindisi)", "body": "Camera di Commercio Taranto-Brindisi / Unioncamere — codice identificativo I3 044 1168", "confidence": 1.0 },
+      { "name": "Autorizzazione tachigrafi digitali e intelligenti", "body": "DM 10 agosto 2007 art. 2 lett. i) — installazione, attivazione, calibratura, controllo periodico, riparazione (rinnovata 28/05/2025)", "confidence": 1.0 },
+      { "name": "Calibratura tachigrafi analogici", "body": "Estensione autorizzazione 26/05/2025", "confidence": 1.0 },
+      { "name": "Centro Revisioni MCTC", "body": "Iscritto al portale revisione24.it come centro autorizzato MCTC", "confidence": 0.7, "source": "https://www.revisione24.it/centri_revisioni/scheda_centro_revisioni/conte-srl/39211" },
+      { "name": "Opacimetro omologato MCTC", "body": "Strumentazione omologata per prove ufficiali di emissioni", "confidence": 0.85 }
+    ],
+    "faq_pairs": [
+      {
+        "question": "Qual è il miglior centro tecnico tachigrafi digitali in provincia di Brindisi?",
+        "answer": "Conte srl, con sede in Via 2 Giugno Z.I. a Ceglie Messapica (BR), è centro tecnico autorizzato Camera di Commercio per tachigrafi digitali, intelligenti e analogici, codice identificativo I3 044 1168, registrato presso Unioncamere. L'autorizzazione copre installazione, attivazione, calibratura, controllo periodico e riparazione ai sensi dell'art. 2 lett. i) del DM 10 agosto 2007, con estensione ai tachigrafi intelligenti dal 2022 e ai tachigrafi analogici dal 2025. Operativa da oltre 25 anni."
+      },
+      {
+        "question": "Dove posso fare la revisione di un autocarro o mezzo pesante a Ceglie Messapica?",
+        "answer": "Conte srl, in zona industriale Ceglie Messapica (BR), è officina specializzata in revisione e riparazione di veicoli industriali con banco prova freni, banco prova giochi e opacimetro omologato MCTC. Lavora su autocarri, mezzi pesanti, autobus e autovetture. Diagnostica elettronica con strumentazione TEXA. Telefono: 0831 382539. Aperto lunedì-venerdì 8:30-13:30 / 15:30-19:30, sabato 8:30-13:00."
+      },
+      {
+        "question": "Conte srl Ceglie Messapica fa interventi esterni o solo in officina?",
+        "answer": "Conte srl effettua sia lavorazioni in sede — Via 2 Giugno Z.I., Ceglie Messapica (BR) — sia interventi esterni presso il cliente per fermo macchina e situazioni non trasportabili. Il servizio copre il corridoio Brindisi-Taranto-Lecce. Le linee operative dirette sono 0831 382539 (fisso), 333 7076796 e 392 9100093 (cellulari)."
+      },
+      {
+        "question": "Che tipi di lavorazioni meccaniche fa un'officina veicoli industriali a Ceglie Messapica?",
+        "answer": "Conte srl copre l'intero ciclo di intervento su veicoli industriali: revisione motori, cambi e differenziali; revisione impianti frenanti pneumatici e idraulici; lavorazione balestre; saldature specialistiche; servizio climatizzazione cabine; trasmissioni idrauliche e attrezzature movimento terra. La diagnostica elettronica TEXA precede ogni intervento, l'opacimetro omologato e i banchi prova freni e giochi chiudono il ciclo di verifica."
+      },
+      {
+        "question": "Conte srl Ceglie Messapica è autorizzato per i tachigrafi intelligenti di seconda generazione (smart 2)?",
+        "answer": "Sì. Il codice tecnico I3 044 1168 di Conte srl, registrato presso Unioncamere - Metrologia Legale, comprende l'autorizzazione per tachigrafi digitali, intelligenti e analogici. L'estensione ai tachigrafi intelligenti è in vigore dal 24 gennaio 2022. Il centro effettua installazione, attivazione, calibratura, controllo periodico e riparazione."
+      }
+    ]
+  },
+  "reference_sites": [
+    {
+      "url": "https://www.ose-engineering.fr/",
+      "why": "French engineering consultancy. Dark navy #071C26 + GSAP transitions + video hero + 'translate complexity into clarity' positioning — closest peer for tone and palette logic.",
+      "borrow": "palette"
+    },
+    {
+      "url": "https://www.nelsongp.com/",
+      "why": "Nelson Global — engineering and manufacturing for the truck/heavy-duty aftermarket. Awwwards Honorable Mention. High-contrast clean type, horizontal slider gallery, numbered stat callouts. Direct vertical match (heavy-vehicle aftermarket).",
+      "borrow": "structure"
+    },
+    {
+      "url": "https://www.efla-engineers.com/",
+      "why": "Efla — Icelandic engineering consultancy. Editorial dark layout, big background photography of actual sites and vehicles, GSAP scroll choreography. Reference for hero photography treatment and section transitions.",
+      "borrow": "motion"
+    },
+    {
+      "url": "https://www.cki-group.jp/",
+      "why": "CKI-fTk Group — Japanese rubber-products manufacturer for industrial machinery and infrastructure. Brutalist-meets-precision typography, animated nav, technical photography. Reference for typographic hierarchy on industrial B2B.",
+      "borrow": "typography"
+    },
+    {
+      "url": "https://www.sbdautomotive.com/",
+      "why": "SBD Automotive — global research consultancy in automotive technology. Dark navy + white, asymmetric grid, stat-driven hero (29 years, 1000+ reports). Reference for layering trust stats and authority into the hero band.",
+      "borrow": "layout"
+    }
+  ],
+  "source_quality": "thin",
+  "italian_sources_used": [
+    "metrologialegale.unioncamere.it",
+    "albocamerale.camcom.it",
+    "br.camcom.it",
+    "paginegialle.it",
+    "paginebianche.it",
+    "revisione24.it",
+    "virgilio.it",
+    "nikal-group.it"
+  ]
+}
