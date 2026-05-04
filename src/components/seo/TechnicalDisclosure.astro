@@ -1,0 +1,460 @@
+---
+import type { SiteConfig, SchemaConfig } from '../../types/content';
+
+interface DisclosureProps {
+  site: SiteConfig;
+  schema: SchemaConfig;
+  pageCount?: number;
+  schemaEntities?: string[];
+  languages?: string[];
+  isDemo?: boolean;
+  starter?: string;
+  contrastRatios?: { fgOnBg?: number; accentOnBg?: number };
+  hosting?: { provider: string; cdn?: string; region?: string };
+  fontsLoaded?: number;
+  imagesOptimized?: number;
+}
+
+const {
+  site,
+  schema,
+  pageCount = 4,
+  schemaEntities = ['Organization', 'LocalBusiness', 'WebSite'],
+  languages = [site.language],
+  isDemo = true,
+  starter = 'Astro static build',
+  contrastRatios = { fgOnBg: 14, accentOnBg: 7 },
+  hosting = { provider: 'GitHub Pages', cdn: 'GitHub edge network', region: 'Global' },
+  fontsLoaded = 2,
+  imagesOptimized = 0,
+} = Astro.props;
+
+const isMultilingual = languages.length > 1;
+const robotsLine = isDemo ? 'noindex, nofollow' : 'index, follow';
+---
+
+<section class="td-page">
+  <div class="container td-container">
+    <header class="td-header">
+      <p class="td-eyebrow">Documentazione tecnica</p>
+      <h1 class="td-title">Dietro le quinte</h1>
+      <p class="td-lead">
+        Un sito moderno non è solo quello che vedi. Sotto la superficie ci sono
+        decine di file, marcatori e regole che lo rendono trovabile dai motori
+        di ricerca, leggibile dagli assistenti AI, accessibile a chiunque, veloce
+        ovunque. Questa pagina elenca, con onestà, cosa abbiamo messo dietro
+        questo sito e perché conta per te.
+      </p>
+    </header>
+
+    <!-- 01 Schema.org -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">01</span>
+        <h2 class="td-block__title">Schema.org / Dati strutturati</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> traduce le informazioni della tua azienda
+          in un linguaggio che Google, Bing e gli assistenti AI capiscono
+          nativamente. È quello che fa apparire i risultati arricchiti — orari,
+          telefono, recensioni, mappa — direttamente nella pagina di ricerca,
+          prima ancora che l'utente clicchi.
+        </p>
+        <dl class="td-data">
+          <div><dt>Tipo principale</dt><dd>{schema.type}</dd></div>
+          <div><dt>Entità presenti</dt><dd>{schemaEntities.length}</dd></div>
+          <div><dt>Elenco</dt><dd>{schemaEntities.join(', ')}</dd></div>
+          <div><dt>Formato</dt><dd>JSON-LD inline in <code>&lt;head&gt;</code></dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <!-- 02 llms.txt -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">02</span>
+        <h2 class="td-block__title">Indicizzazione AI / <code>llms.txt</code></h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> è un file di testo, accessibile a qualsiasi
+          modello linguistico (Claude, ChatGPT, Gemini, Perplexity), che riassume
+          chi sei, cosa offri, dove sei. Quando un utente chiede a un'AI un
+          consiglio nel tuo settore, l'AI legge questo file per decidere se
+          raccomandare te o un competitor. È lo standard emergente del
+          posizionamento sui motori AI.
+        </p>
+        <dl class="td-data">
+          <div><dt>Endpoint</dt><dd><a href="/llms.txt" rel="nofollow">/llms.txt</a></dd></div>
+          <div><dt>Contenuto</dt><dd>servizi, progetti, contatti in markdown leggibile</dd></div>
+          <div><dt>Aggiornamento</dt><dd>automatico ad ogni build</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <!-- 03 Sitemap + robots -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">03</span>
+        <h2 class="td-block__title">Sitemap + <code>robots.txt</code></h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> la sitemap è la mappa ufficiale che dice
+          ai crawler quali pagine esistono e con che frequenza cambiano.
+          <code>robots.txt</code> è il regolamento d'ingresso: chi può
+          scansionare, cosa può leggere, cosa deve ignorare. Senza questi due
+          file, un sito è visibile ma non scoperto.
+        </p>
+        <dl class="td-data">
+          <div><dt>Sitemap</dt><dd><a href="/sitemap-index.xml" rel="nofollow">/sitemap-index.xml</a></dd></div>
+          <div><dt>Pagine indicizzabili</dt><dd>{pageCount}</dd></div>
+          <div><dt>Robots policy</dt><dd><code>{robotsLine}</code></dd></div>
+          <div><dt>Stato</dt><dd>{isDemo ? 'Anteprima — esclusa dai motori finché non passi in produzione' : 'In produzione — indicizzata'}</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <!-- 04 OpenGraph + Twitter Cards -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">04</span>
+        <h2 class="td-block__title">OpenGraph + Twitter Cards</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> controlla come appare il sito quando il
+          link viene incollato su WhatsApp, LinkedIn, X, Slack, Telegram.
+          Senza OpenGraph, l'anteprima è un blocco grigio anonimo. Con
+          OpenGraph, è una scheda con immagine, titolo, descrizione che
+          aumenta il tasso di clic in maniera misurabile.
+        </p>
+        <dl class="td-data">
+          <div><dt>og:title</dt><dd>{site.name}</dd></div>
+          <div><dt>og:description</dt><dd>{site.tagline || site.description}</dd></div>
+          <div><dt>og:image</dt><dd>preview generata dal layout brand</dd></div>
+          <div><dt>twitter:card</dt><dd><code>summary_large_image</code></dd></div>
+        </dl>
+      </div>
+    </article>
+
+    {isMultilingual && (
+      <!-- 05 hreflang -->
+      <article class="td-block">
+        <div class="td-block__head">
+          <span class="td-num">05</span>
+          <h2 class="td-block__title">Internazionalizzazione / <code>hreflang</code></h2>
+        </div>
+        <div class="td-block__body">
+          <p class="td-explain">
+            <strong>Cosa fa:</strong> dice a Google quale versione linguistica
+            del sito mostrare in base al paese del visitatore. Senza hreflang,
+            un cliente francese che cerca te potrebbe atterrare sulla pagina
+            italiana — e rimbalzare. Con hreflang, atterra direttamente sulla
+            versione corretta.
+          </p>
+          <dl class="td-data">
+            <div><dt>Lingue attive</dt><dd>{languages.join(', ').toUpperCase()}</dd></div>
+            <div><dt>Tag</dt><dd><code>&lt;link rel="alternate" hreflang="..."&gt;</code> in ogni pagina</dd></div>
+          </dl>
+        </div>
+      </article>
+    )}
+
+    <!-- 06 Performance -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">{isMultilingual ? '06' : '05'}</span>
+        <h2 class="td-block__title">Performance / Core Web Vitals</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> Google misura quanto velocemente il sito
+          carica, quanto è stabile mentre carica, quanto reagisce al primo
+          tap. Questi tre numeri (LCP, CLS, INP) entrano nel ranking dal
+          2021. Un sito lento perde posizionamento e perde utenti — il 53%
+          abbandona se il caricamento supera i 3 secondi.
+        </p>
+        <dl class="td-data">
+          <div><dt>Framework</dt><dd>Astro — zero-JavaScript di default, build statico</dd></div>
+          <div><dt>Font</dt><dd>{fontsLoaded} self-hosted (no Google CDN, conforme GDPR)</dd></div>
+          <div><dt>Immagini</dt><dd>{imagesOptimized > 0 ? `${imagesOptimized} ottimizzate (compressione + lazy loading)` : 'compressione + lazy loading'}</dd></div>
+          <div><dt>JavaScript</dt><dd>caricato solo dove serve (islands architecture)</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <!-- 07 Accessibilità -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">{isMultilingual ? '07' : '06'}</span>
+        <h2 class="td-block__title">Accessibilità WCAG 2.1 AA</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> assicura che il sito sia leggibile da
+          screen reader, navigabile da tastiera, comprensibile a chi ha
+          difficoltà visive o cognitive. È un obbligo legale crescente in
+          UE (European Accessibility Act, giugno 2025) e un segnale di
+          serietà verso il pubblico. Aumenta anche il SEO — i criteri di
+          accessibilità coincidono in larga parte con quelli di leggibilità
+          per i crawler.
+        </p>
+        <dl class="td-data">
+          <div><dt>Contrasto testo / sfondo</dt><dd>{contrastRatios.fgOnBg}:1 (AA richiede 4.5)</dd></div>
+          <div><dt>Contrasto accento / sfondo</dt><dd>{contrastRatios.accentOnBg}:1</dd></div>
+          <div><dt>Alt text</dt><dd>su tutte le immagini di contenuto</dd></div>
+          <div><dt>Landmark</dt><dd>header, nav, main, footer semantici</dd></div>
+          <div><dt>Focus visibile</dt><dd>su tutti gli elementi interattivi</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <!-- 08 Privacy / GDPR -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">{isMultilingual ? '08' : '07'}</span>
+        <h2 class="td-block__title">Privacy &amp; GDPR</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> il sito non invia dati a terze parti senza
+          consenso. I font sono ospitati in autonomia (non Google CDN), le
+          immagini sono locali, non ci sono pixel di tracciamento. Nessun
+          banner cookie invadente perché non ci sono cookie da consentire.
+          Conforme al regolamento europeo per design, non per patch.
+        </p>
+        <dl class="td-data">
+          <div><dt>Trasporto</dt><dd>HTTPS + HSTS</dd></div>
+          <div><dt>Tracker terze parti</dt><dd>nessuno</dd></div>
+          <div><dt>Cookie</dt><dd>nessuno tecnico-esterno</dd></div>
+          <div><dt>Privacy policy</dt><dd><a href="/privacy">/privacy</a></dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <!-- 09 Hosting & CDN -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">{isMultilingual ? '09' : '08'}</span>
+        <h2 class="td-block__title">Hosting &amp; CDN</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> il sito è servito da una rete di datacenter
+          distribuiti geograficamente. Quando un utente apre la pagina, viene
+          servita dal datacenter più vicino — millisecondi invece di secondi.
+          La rete assorbe anche picchi di traffico senza degrado.
+        </p>
+        <dl class="td-data">
+          <div><dt>Provider</dt><dd>{hosting.provider}</dd></div>
+          {hosting.cdn && <div><dt>CDN</dt><dd>{hosting.cdn}</dd></div>}
+          {hosting.region && <div><dt>Copertura</dt><dd>{hosting.region}</dd></div>}
+          <div><dt>Build type</dt><dd>statico — nessun server da gestire, nessun database da proteggere</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <!-- 10 Stack tecnico -->
+    <article class="td-block">
+      <div class="td-block__head">
+        <span class="td-num">{isMultilingual ? '10' : '09'}</span>
+        <h2 class="td-block__title">Stack tecnico</h2>
+      </div>
+      <div class="td-block__body">
+        <p class="td-explain">
+          <strong>Cosa fa:</strong> framework moderno scelto per produrre
+          siti veloci di default. Niente WordPress da aggiornare, niente
+          plugin da rompere, niente database da bucare. Il codice sorgente
+          è versionato su Git: ogni modifica è tracciata, ogni build è
+          riproducibile.
+        </p>
+        <dl class="td-data">
+          <div><dt>Framework</dt><dd>Astro 5.x ({starter})</dd></div>
+          <div><dt>Linguaggio</dt><dd>TypeScript per il codice, Markdown per il contenuto</dd></div>
+          <div><dt>Animazioni</dt><dd>GSAP + Lenis (rispettano <code>prefers-reduced-motion</code>)</dd></div>
+          <div><dt>Versionamento</dt><dd>Git — cronologia completa delle modifiche</dd></div>
+          <div><dt>Deploy</dt><dd>automatico ad ogni push sul branch principale</dd></div>
+        </dl>
+      </div>
+    </article>
+
+    <footer class="td-footer">
+      <p class="td-footer__line">
+        Tutto questo è verificabile. Apri qualsiasi link sopra, ispeziona il
+        codice della pagina, controlla gli header HTTP. Niente è nascosto,
+        niente è marketing — è ingegneria, documentata.
+      </p>
+      <p class="td-footer__contact">
+        Domande tecniche? <a href={`mailto:${site.contact.email}`}>{site.contact.email}</a>
+      </p>
+    </footer>
+  </div>
+</section>
+
+<style>
+  .td-page {
+    padding-block: var(--space-2xl, 4rem) var(--space-2xl, 4rem);
+    background: var(--color-bg, #ffffff);
+    color: var(--color-fg, #111111);
+  }
+  .td-container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding-inline: var(--space-md, 1.5rem);
+  }
+  .td-header {
+    margin-bottom: var(--space-2xl, 4rem);
+    padding-bottom: var(--space-xl, 3rem);
+    border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  }
+  .td-eyebrow {
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+    font-size: var(--text-xs, 0.75rem);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: color-mix(in srgb, currentColor 55%, transparent);
+    margin: 0 0 var(--space-sm, 0.75rem);
+  }
+  .td-title {
+    font-family: var(--font-display, inherit);
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
+    line-height: 1.05;
+    margin: 0 0 var(--space-lg, 2rem);
+    letter-spacing: -0.01em;
+  }
+  .td-lead {
+    font-size: var(--text-lg, 1.125rem);
+    line-height: 1.55;
+    color: color-mix(in srgb, currentColor 75%, transparent);
+    max-width: 64ch;
+    margin: 0;
+  }
+  .td-block {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md, 1.5rem);
+    padding-block: var(--space-xl, 3rem);
+    border-bottom: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  }
+  .td-block:last-of-type {
+    border-bottom: 0;
+  }
+  .td-block__head {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-md, 1.5rem);
+  }
+  .td-num {
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+    font-size: var(--text-sm, 0.875rem);
+    color: var(--color-accent, currentColor);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+  }
+  .td-block__title {
+    font-family: var(--font-display, inherit);
+    font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+    line-height: 1.2;
+    margin: 0;
+    letter-spacing: -0.005em;
+  }
+  .td-block__title code {
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+    font-size: 0.9em;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    padding: 0.05em 0.35em;
+    border-radius: 3px;
+    font-weight: 500;
+  }
+  .td-block__body {
+    display: grid;
+    gap: var(--space-md, 1.5rem);
+  }
+  .td-explain {
+    font-size: var(--text-base, 1rem);
+    line-height: 1.6;
+    color: color-mix(in srgb, currentColor 80%, transparent);
+    max-width: 64ch;
+    margin: 0;
+  }
+  .td-explain strong {
+    color: currentColor;
+    font-weight: 600;
+  }
+  .td-data {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin: 0;
+    border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  }
+  .td-data > div {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: var(--space-md, 1.5rem);
+    padding: var(--space-sm, 0.75rem) 0;
+    border-bottom: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+    font-size: var(--text-sm, 0.875rem);
+  }
+  .td-data dt {
+    margin: 0;
+    color: color-mix(in srgb, currentColor 55%, transparent);
+    font-weight: 500;
+  }
+  .td-data dd {
+    margin: 0;
+    color: currentColor;
+    font-weight: 400;
+    word-break: break-word;
+  }
+  .td-data code {
+    font-family: var(--font-mono, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace);
+    font-size: 0.9em;
+    background: color-mix(in srgb, currentColor 6%, transparent);
+    padding: 0.05em 0.35em;
+    border-radius: 3px;
+  }
+  .td-data a {
+    color: var(--color-accent, currentColor);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .td-footer {
+    margin-top: var(--space-2xl, 4rem);
+    padding-top: var(--space-xl, 3rem);
+    border-top: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  }
+  .td-footer__line {
+    font-size: var(--text-base, 1rem);
+    line-height: 1.55;
+    color: color-mix(in srgb, currentColor 70%, transparent);
+    margin: 0 0 var(--space-md, 1.5rem);
+    max-width: 64ch;
+  }
+  .td-footer__contact {
+    font-size: var(--text-sm, 0.875rem);
+    color: color-mix(in srgb, currentColor 70%, transparent);
+    margin: 0;
+  }
+  .td-footer__contact a {
+    color: var(--color-accent, currentColor);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  @media (min-width: 720px) {
+    .td-block {
+      grid-template-columns: 200px 1fr;
+      gap: var(--space-xl, 3rem);
+      align-items: start;
+    }
+    .td-block__head {
+      flex-direction: column;
+      gap: var(--space-sm, 0.75rem);
+      position: sticky;
+      top: var(--space-xl, 3rem);
+    }
+  }
+</style>
