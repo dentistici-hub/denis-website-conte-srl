@@ -1,0 +1,26 @@
+---
+import type { PhilosophyPillar } from '../../types/content';
+interface Props { pillars: PhilosophyPillar[]; sectionTitle?: string; }
+const { pillars, sectionTitle = 'How We Think' } = Astro.props;
+---
+<section class="philosophy section" aria-labelledby="philosophy-title">
+  <div class="container">
+    <h2 class="philosophy__title display" id="philosophy-title" data-animate>{sectionTitle}</h2>
+    <div class="philosophy__pillars">
+      {pillars.map((pillar, i) => (
+        <article class="philosophy__pillar" data-animate style={`--index: ${i}`}>
+          <span class="philosophy__number display">{pillar.number}</span>
+          <h3 class="philosophy__pillar-title">{pillar.title}</h3>
+          <p class="philosophy__pillar-desc">{pillar.description}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+<style>
+  .philosophy__title { font-size: var(--text-3xl); margin-bottom: var(--space-xl); }
+  .philosophy__pillars { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-xl); }
+  .philosophy__number { font-size: var(--text-display); color: var(--color-accent); opacity: 0.3; line-height: 1; display: block; margin-bottom: var(--space-sm); }
+  .philosophy__pillar-title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-sm); }
+  .philosophy__pillar-desc { color: var(--color-fg-muted); line-height: var(--leading-normal); }
+</style>

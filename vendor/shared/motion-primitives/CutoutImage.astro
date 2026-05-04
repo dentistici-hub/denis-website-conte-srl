@@ -1,0 +1,106 @@
+---
+/**
+ * CutoutImage — wrapper for transparent-background PNG/WEBP images that are
+ * "cut out" from their photo background. Adds optional drop-shadow and
+ * colored glow to make them feel intentional on colored backgrounds.
+ *
+ * Use for: product shots on brand-color backgrounds, isolated team portraits,
+ * hand-illustrated objects floating in a layout. Requires a real cutout
+ * asset (asset-gatherer can generate via Pollinations or commission).
+ *
+ * Props:
+ *   - src: string — required. Transparent-background image.
+ *   - alt: string — required.
+ *   - shadow: 'none' | 'soft' | 'hard'. Default 'soft'.
+ *   - glow: string — optional CSS color for a colored glow behind the cutout.
+ *   - maxWidth: CSS length. Default '100%'.
+ *   - aspectRatio: string — optional.
+ *   - float: boolean — subtle floating animation. Default false.
+ *   - class passthrough.
+ *
+ * Usage:
+ *   <CutoutImage
+ *     src="/images/bottle-cutout.png"
+ *     alt="Our signature bottle"
+ *     shadow="soft"
+ *     glow="#FA4E03"
+ *     float
+ *   />
+ */
+type Shadow = 'none' | 'soft' | 'hard';
+
+interface Props {
+  src: string;
+  alt: string;
+  shadow?: Shadow;
+  glow?: string;
+  maxWidth?: string;
+  aspectRatio?: string;
+  float?: boolean;
+  class?: string;
+}
+
+const {
+  src,
+  alt,
+  shadow = 'soft',
+  glow,
+  maxWidth = '100%',
+  aspectRatio,
+  float = false,
+  class: className = '',
+} = Astro.props;
+
+const ratioStyle = aspectRatio ? `aspect-ratio: ${aspectRatio};` : '';
+const glowStyle = glow ? `--cutout-glow: ${glow};` : '';
+---
+
+<figure
+  class:list={['cutout', `cutout--shadow-${shadow}`, glow && 'cutout--has-glow', float && 'cutout--float', className]}
+  style={`max-width: ${maxWidth}; ${ratioStyle} ${glowStyle}`}
+>
+  {glow && <span class="cutout__glow" aria-hidden="true"></span>}
+  <img class="cutout__img" src={src} alt={alt} loading="lazy" decoding="async" />
+</figure>
+
+<style>
+  .cutout {
+    position: relative;
+    display: block;
+    margin: 0;
+    width: 100%;
+  }
+  .cutout__img {
+    display: block;
+    width: 100%;
+    height: auto;
+    position: relative;
+    z-index: 2;
+  }
+  .cutout--shadow-soft .cutout__img {
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.25));
+  }
+  .cutout--shadow-hard .cutout__img {
+    filter: drop-shadow(0 8px 0 rgba(0, 0, 0, 0.85));
+  }
+  .cutout__glow {
+    position: absolute;
+    inset: 10%;
+    background: radial-gradient(closest-side, var(--cutout-glow, #fa4e03), transparent 70%);
+    filter: blur(40px);
+    opacity: 0.55;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .cutout--float .cutout__img {
+    animation: cutout-float 6s ease-in-out infinite;
+    will-change: transform;
+  }
+  @keyframes cutout-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-12px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .cutout--float .cutout__img { animation: none; }
+  }
+</style>

@@ -1,0 +1,234 @@
+---
+import type { SiteConfig, Stat } from '../../types/content';
+
+interface Props {
+  site: SiteConfig;
+  stats?: Stat[];
+  eyebrow?: string;
+  primaryCtaLabel?: string;
+  primaryCtaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+}
+
+const {
+  site,
+  stats,
+  eyebrow = '',
+  primaryCtaLabel = 'Get in Touch',
+  primaryCtaHref = '#contact',
+  secondaryCtaLabel = 'View Work',
+  secondaryCtaHref = '#projects',
+} = Astro.props;
+---
+
+<section class="hero" id="hero" aria-label="Introduction">
+  <!-- Dark overlay on top of bg pattern -->
+  <div class="hero__bg" aria-hidden="true">
+    <div class="hero__bg-pattern"></div>
+    <div class="hero__bg-overlay"></div>
+  </div>
+
+  <div class="hero__content container">
+    {eyebrow && (
+      <div class="hero__eyebrow" data-animate>
+        <span class="hero__eyebrow-line"></span>
+        <span class="hero__eyebrow-text">{eyebrow}</span>
+      </div>
+    )}
+
+    <h1 class="hero__title display" data-animate>
+      {site.tagline}
+    </h1>
+
+    <p class="hero__description" data-animate>
+      {site.description}
+    </p>
+
+    <div class="hero__actions" data-animate>
+      <a href={primaryCtaHref} class="hero__cta-primary">{primaryCtaLabel}</a>
+      <a href={secondaryCtaHref} class="hero__cta-secondary">{secondaryCtaLabel}</a>
+    </div>
+  </div>
+
+  {stats && stats.length > 0 && (
+    <div class="hero__stats-bar">
+      <div class="container">
+        <div class="hero__stats">
+          {stats.map((stat) => (
+            <div class="hero__stat">
+              <span class="hero__stat-value display" data-counter>{stat.value}</span>
+              <span class="hero__stat-label">{stat.label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )}
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    overflow: hidden;
+    padding-top: 72px; /* nav height */
+  }
+
+  .hero__bg {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-bg);
+  }
+
+  /* Structural grid pattern background */
+  .hero__bg-pattern {
+    position: absolute;
+    inset: 0;
+    background-color: var(--color-bg-dark);
+    background-image:
+      linear-gradient(rgba(8, 145, 178, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(8, 145, 178, 0.08) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  .hero__bg-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(26, 26, 26, 0.3) 0%,
+      rgba(26, 26, 26, 0.5) 50%,
+      rgba(26, 26, 26, 0.85) 100%
+    );
+  }
+
+  .hero__content {
+    position: relative;
+    z-index: var(--z-content);
+    padding-block: var(--space-2xl);
+    padding-bottom: var(--space-xl);
+    max-width: 900px;
+  }
+
+  .hero__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .hero__eyebrow-line {
+    display: block;
+    width: 40px;
+    height: 2px;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .hero__eyebrow-text {
+    font-size: var(--text-sm);
+    color: var(--color-accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  .hero__title {
+    font-size: var(--text-display);
+    color: white;
+    margin-bottom: var(--space-md);
+    max-width: 14ch;
+  }
+
+  .hero__description {
+    font-size: var(--text-lg);
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 600px;
+    margin-bottom: var(--space-lg);
+    line-height: var(--leading-snug);
+  }
+
+  .hero__actions {
+    display: flex;
+    gap: var(--space-md);
+    flex-wrap: wrap;
+  }
+
+  .hero__cta-primary {
+    display: inline-block;
+    padding: 14px 32px;
+    background: var(--color-accent);
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .hero__cta-primary:hover {
+    background: var(--color-accent-dark);
+  }
+
+  .hero__cta-secondary {
+    display: inline-block;
+    padding: 14px 32px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .hero__cta-secondary:hover {
+    border-color: white;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Stats bar at bottom */
+  .hero__stats-bar {
+    position: relative;
+    z-index: var(--z-content);
+    background: var(--color-accent);
+    padding-block: var(--space-lg);
+  }
+
+  .hero__stats {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+
+  .hero__stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .hero__stat-value {
+    font-size: var(--text-3xl);
+    color: white;
+    line-height: 1;
+  }
+
+  .hero__stat-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  @media (min-width: 600px) {
+    .hero__stats {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>

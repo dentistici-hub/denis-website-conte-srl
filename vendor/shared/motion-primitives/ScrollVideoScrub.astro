@@ -1,0 +1,460 @@
+---
+/**
+ * ScrollVideoScrub — scroll position drives a video's currentTime (scrubbing).
+ *
+ * Two modes:
+ *
+ *   mode="video" (default)
+ *     A <video> element. On scroll progress 0→1, sets
+ *     `video.currentTime = progress * video.duration` via GSAP ScrollTrigger
+ *     with `scrub`. Best on Chrome/Edge/Firefox desktop + modern Android
+ *     Chrome. Not reliable on iOS Safari (long MP4 seeks stall) — use
+ *     mode="frames" for iOS-safe scrubbing.
+ *
+ *   mode="frames" (opt-in, iOS-safe)
+ *     A <canvas>. Author supplies a directory of numbered JPEGs
+ *     (0001.jpg … NNNN.jpg); the matching frame is drawn on scroll.
+ *     Every 10th frame is eager-loaded on init; the rest load lazily.
+ *
+ * Pinned mechanic: outer section holds `distance` of scroll; inner sticky
+ * wrapper displays video/canvas at `height` while pinned.
+ *
+ * Reduced motion:
+ *   - Video mode: renders a static <img> (reducedMotionPoster ?? poster).
+ *   - Frames mode: draws `reducedMotionStaticFrame` once, no ScrollTrigger.
+ *
+ * Asset pipeline:
+ *   Asset-gatherer fills `hero-video` (mode="video") and `scroll-frames`
+ *   (mode="frames"). Frame sequences land under `/public/scroll-frames/<name>/`
+ *   and should be referenced with `withBase(...)` when the project has a
+ *   GH Pages base path. Video assets land under `/public/videos/` with a
+ *   matching poster JPEG.
+ *
+ * Props:
+ *   - mode: 'video' | 'frames'. Default 'video'.
+ *   - src: string. Video URL (video mode) or directory base URL with
+ *       trailing slash (frames mode).
+ *   - totalFrames: number. Required when mode='frames'.
+ *   - framePattern: string. '{index}.jpg' by default. Index is 4-digit
+ *       zero-padded (0001, 0002, ..., NNNN).
+ *   - poster: string. Video mode poster.
+ *   - distance: string. Scroll distance for full scrub. Default '300vh'.
+ *   - scrub: boolean | number. GSAP scrub (true or seconds). Default true.
+ *   - pinned: boolean. Default true.
+ *   - height: string. Sticky viewport height. Default '100vh'.
+ *   - fit: 'cover' | 'contain'. Default 'cover'.
+ *   - reducedMotionStaticFrame: number. Frames mode. Default 0.
+ *   - reducedMotionPoster: string. Video mode. Defaults to poster.
+ *   - ariaLabel: string. Label applied to video/canvas/fallback img.
+ *   - class passthrough.
+ *
+ * Usage (video mode, default):
+ *   <ScrollVideoScrub
+ *     src="/videos/product-hero.mp4"
+ *     poster="/videos/product-hero.jpg"
+ *     distance="500vh"
+ *   />
+ *
+ * Usage (frame sequence mode, iOS-safe):
+ *   <ScrollVideoScrub
+ *     mode="frames"
+ *     src="/scroll-frames/atelier/"
+ *     totalFrames={60}
+ *     framePattern="{index}.jpg"
+ *     distance="400vh"
+ *   />
+ */
+interface Props {
+  mode?: 'video' | 'frames';
+  src?: string;
+  totalFrames?: number;
+  framePattern?: string;
+  poster?: string;
+  distance?: string;
+  scrub?: boolean | number;
+  pinned?: boolean;
+  height?: string;
+  fit?: 'cover' | 'contain';
+  reducedMotionStaticFrame?: number;
+  reducedMotionPoster?: string;
+  ariaLabel?: string;
+  class?: string;
+}
+
+const {
+  mode = 'video',
+  src,
+  totalFrames,
+  framePattern = '{index}.jpg',
+  poster,
+  distance = '300vh',
+  scrub = true,
+  pinned = true,
+  height = '100vh',
+  fit = 'cover',
+  reducedMotionStaticFrame = 0,
+  reducedMotionPoster,
+  ariaLabel = '',
+  class: className = '',
+} = Astro.props;
+
+if (mode === 'frames' && (!src || !totalFrames || totalFrames < 1)) {
+  throw new Error('ScrollVideoScrub: mode="frames" requires `src` and `totalFrames` (>= 1).');
+}
+if (mode === 'video' && !src) {
+  throw new Error('ScrollVideoScrub: mode="video" requires a `src` prop.');
+}
+
+const config = JSON.stringify({
+  mode,
+  src,
+  totalFrames: totalFrames ?? 0,
+  framePattern,
+  poster: poster ?? '',
+  distance,
+  scrub,
+  fit,
+  reducedMotionStaticFrame,
+  reducedMotionPoster: reducedMotionPoster ?? poster ?? '',
+  ariaLabel,
+});
+---
+
+<section
+  class:list={['scroll-video-scrub', className, pinned ? 'is-pinned' : '']}
+  data-scrub={config}
+  style={`--svs-distance: ${distance}; --svs-height: ${height}; --svs-fit: ${fit};`}
+>
+  <div class="scroll-video-scrub__sticky">
+    {mode === 'video' ? (
+      <>
+        <video
+          class="scroll-video-scrub__video"
+          muted
+          playsinline
+          preload="auto"
+          src={src}
+          poster={poster}
+          aria-label={ariaLabel}
+        ></video>
+        {poster && (
+          <img
+            class="scroll-video-scrub__fallback"
+            src={poster}
+            alt={ariaLabel}
+            hidden
+          />
+        )}
+      </>
+    ) : (
+      <canvas
+        class="scroll-video-scrub__canvas"
+        role="img"
+        aria-label={ariaLabel}
+      ></canvas>
+    )}
+  </div>
+</section>
+
+<style>
+  .scroll-video-scrub {
+    position: relative;
+    width: 100%;
+    overflow: clip;
+    height: var(--svs-distance, 300vh);
+  }
+  .scroll-video-scrub:not(.is-pinned) {
+    height: var(--svs-height, 100vh);
+  }
+  .scroll-video-scrub__sticky {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    height: var(--svs-height, 100vh);
+    overflow: hidden;
+    background: #000;
+  }
+  .scroll-video-scrub:not(.is-pinned) .scroll-video-scrub__sticky {
+    position: relative;
+  }
+  .scroll-video-scrub__video,
+  .scroll-video-scrub__fallback,
+  .scroll-video-scrub__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: var(--svs-fit, cover);
+    user-select: none;
+    pointer-events: none;
+  }
+  .scroll-video-scrub__fallback[hidden] { display: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .scroll-video-scrub { height: var(--svs-height, 100vh); }
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  const w = window as unknown as { __mpGsap?: boolean };
+  if (!w.__mpGsap) {
+    gsap.registerPlugin(ScrollTrigger);
+    w.__mpGsap = true;
+  }
+
+  interface ScrubConfig {
+    mode: 'video' | 'frames';
+    src: string;
+    totalFrames: number;
+    framePattern: string;
+    poster: string;
+    distance: string;
+    scrub: boolean | number;
+    fit: 'cover' | 'contain';
+    reducedMotionStaticFrame: number;
+    reducedMotionPoster: string;
+    ariaLabel: string;
+  }
+
+  type Cleanup = () => void;
+  const cleanups = new Set<Cleanup>();
+
+  const isReducedMotion = (): boolean =>
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function parseHeightToPixels(h: string): number {
+    const t = h.trim();
+    if (t.endsWith('vh')) return (parseFloat(t) / 100) * window.innerHeight;
+    if (t.endsWith('vw')) return (parseFloat(t) / 100) * window.innerWidth;
+    if (t.endsWith('px')) return parseFloat(t);
+    const n = parseFloat(t);
+    return isNaN(n) ? window.innerHeight * 3 : n;
+  }
+
+  function frameUrl(base: string, pattern: string, index: number): string {
+    return base + pattern.replace('{index}', String(index + 1).padStart(4, '0'));
+  }
+
+  function drawFrame(
+    canvas: HTMLCanvasElement,
+    img: HTMLImageElement,
+    fit: 'cover' | 'contain',
+  ): void {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    if (!cw || !ch || !iw || !ih) return;
+
+    const canvasRatio = cw / ch;
+    const imageRatio = iw / ih;
+    let dw = cw, dh = ch, dx = 0, dy = 0;
+
+    const wider = imageRatio > canvasRatio;
+    if ((fit === 'cover' && wider) || (fit === 'contain' && !wider)) {
+      dh = ch;
+      dw = ch * imageRatio;
+      dx = (cw - dw) / 2;
+    } else {
+      dw = cw;
+      dh = cw / imageRatio;
+      dy = (ch - dh) / 2;
+    }
+    ctx.clearRect(0, 0, cw, ch);
+    ctx.drawImage(img, dx, dy, dw, dh);
+  }
+
+  function initVideoMode(host: HTMLElement, cfg: ScrubConfig): void {
+    const sticky = host.querySelector<HTMLElement>('.scroll-video-scrub__sticky');
+    const video = host.querySelector<HTMLVideoElement>('.scroll-video-scrub__video');
+    const fallback = host.querySelector<HTMLImageElement>('.scroll-video-scrub__fallback');
+    if (!sticky || !video) return;
+
+    const showPoster = (): void => {
+      video.remove();
+      if (fallback) {
+        fallback.hidden = false;
+      } else if (cfg.reducedMotionPoster) {
+        const img = document.createElement('img');
+        img.src = cfg.reducedMotionPoster;
+        img.alt = cfg.ariaLabel;
+        img.className = 'scroll-video-scrub__fallback';
+        sticky.appendChild(img);
+      }
+    };
+
+    if (isReducedMotion()) { showPoster(); return; }
+
+    let errored = false;
+    const onError = (): void => {
+      if (errored) return;
+      errored = true;
+      console.warn('ScrollVideoScrub: video failed to load, falling back to poster.', cfg.src);
+      showPoster();
+    };
+    video.addEventListener('error', onError);
+
+    let trigger: ScrollTrigger | null = null;
+    const wireScrub = (): void => {
+      if (errored || !video.duration || isNaN(video.duration)) { onError(); return; }
+      trigger = ScrollTrigger.create({
+        trigger: host,
+        start: 'top top',
+        end: `+=${parseHeightToPixels(cfg.distance)}`,
+        scrub: cfg.scrub,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          if (!video.duration || isNaN(video.duration)) return;
+          try { video.currentTime = self.progress * video.duration; } catch { /* ignore */ }
+        },
+      });
+    };
+
+    if (video.readyState >= 1 && video.duration > 0 && !isNaN(video.duration)) {
+      wireScrub();
+    } else {
+      video.addEventListener('loadedmetadata', wireScrub, { once: true });
+    }
+
+    cleanups.add(() => {
+      if (trigger) trigger.kill();
+      video.removeEventListener('error', onError);
+      video.removeEventListener('loadedmetadata', wireScrub);
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
+    });
+  }
+
+  function initFramesMode(host: HTMLElement, cfg: ScrubConfig): void {
+    const sticky = host.querySelector<HTMLElement>('.scroll-video-scrub__sticky');
+    const canvas = host.querySelector<HTMLCanvasElement>('.scroll-video-scrub__canvas');
+    if (!sticky || !canvas) return;
+
+    const total = cfg.totalFrames;
+    const cache = new Map<number, HTMLImageElement>();
+    let lastDrawn = -1;
+
+    const resize = (): void => {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const w = sticky.clientWidth * dpr;
+      const h = sticky.clientHeight * dpr;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+    };
+
+    const loadFrame = (idx: number, eager = false): Promise<HTMLImageElement> => {
+      const existing = cache.get(idx);
+      if (existing) {
+        if (existing.complete && existing.naturalWidth > 0) return Promise.resolve(existing);
+        return new Promise((res, rej) => {
+          existing.addEventListener('load', () => res(existing), { once: true });
+          existing.addEventListener('error', rej, { once: true });
+        });
+      }
+      const img = new Image();
+      img.decoding = 'async';
+      if (!eager) img.loading = 'lazy';
+      img.src = frameUrl(cfg.src, cfg.framePattern, idx);
+      cache.set(idx, img);
+      return new Promise((res, rej) => {
+        img.addEventListener('load', () => res(img), { once: true });
+        img.addEventListener('error', rej, { once: true });
+      });
+    };
+
+    const drawIdx = (idx: number): void => {
+      const clamped = Math.max(0, Math.min(total - 1, idx));
+      const img = cache.get(clamped);
+      if (img && img.complete && img.naturalWidth > 0) {
+        drawFrame(canvas, img, cfg.fit);
+        lastDrawn = clamped;
+        return;
+      }
+      // Not loaded: kick off load, keep last frame on screen (no flicker).
+      loadFrame(clamped)
+        .then((loaded) => {
+          if (lastDrawn === -1 || Math.abs(lastDrawn - clamped) <= 2) {
+            drawFrame(canvas, loaded, cfg.fit);
+            lastDrawn = clamped;
+          }
+        })
+        .catch(() => { /* ignore */ });
+    };
+
+    const reduced = isReducedMotion();
+    resize();
+
+    // Eager-load every 10th frame (+ the last) to seed the cache.
+    const eager: number[] = [];
+    for (let i = 0; i < total; i += 10) eager.push(i);
+    if (eager[eager.length - 1] !== total - 1) eager.push(total - 1);
+    Promise.all(eager.map((i) => loadFrame(i, true).catch(() => null))).then(() => {
+      drawIdx(reduced ? cfg.reducedMotionStaticFrame : 0);
+    });
+
+    const onResize = (): void => {
+      resize();
+      if (lastDrawn >= 0) drawIdx(lastDrawn);
+    };
+    window.addEventListener('resize', onResize);
+
+    let trigger: ScrollTrigger | null = null;
+    if (!reduced) {
+      trigger = ScrollTrigger.create({
+        trigger: host,
+        start: 'top top',
+        end: `+=${parseHeightToPixels(cfg.distance)}`,
+        scrub: cfg.scrub,
+        invalidateOnRefresh: true,
+        onUpdate: (self) => {
+          drawIdx(Math.round(self.progress * (total - 1)));
+        },
+      });
+    }
+
+    cleanups.add(() => {
+      if (trigger) trigger.kill();
+      window.removeEventListener('resize', onResize);
+      cache.forEach((img) => { img.src = ''; });
+      cache.clear();
+    });
+  }
+
+  function initScrollVideoScrub(): void {
+    const hosts = document.querySelectorAll<HTMLElement>('.scroll-video-scrub[data-scrub]');
+    hosts.forEach((host) => {
+      if (host.dataset.scrubInitialized === 'true') return;
+      host.dataset.scrubInitialized = 'true';
+
+      let cfg: ScrubConfig;
+      try { cfg = JSON.parse(host.dataset.scrub || '{}') as ScrubConfig; } catch { return; }
+
+      if (cfg.mode === 'frames') initFramesMode(host, cfg);
+      else initVideoMode(host, cfg);
+    });
+  }
+
+  function disposeAll(): void {
+    cleanups.forEach((fn) => { try { fn(); } catch { /* ignore */ } });
+    cleanups.clear();
+    document
+      .querySelectorAll<HTMLElement>('.scroll-video-scrub[data-scrub-initialized="true"]')
+      .forEach((el) => { delete el.dataset.scrubInitialized; });
+  }
+
+  document.addEventListener('astro:before-swap', disposeAll);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScrollVideoScrub, { once: true });
+  } else {
+    initScrollVideoScrub();
+  }
+</script>

@@ -1,0 +1,162 @@
+---
+import type { CaseStudy } from '../../types/content';
+
+interface Props {
+  cases: CaseStudy[];
+}
+
+const { cases } = Astro.props;
+
+const withBase = (p: string | undefined): string | undefined => {
+  if (!p) return p;
+  if (/^(https?:\/\/|data:)/.test(p)) return p;
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return p.startsWith('/') ? `${base}${p}` : `${base}/${p}`;
+};
+---
+
+<section class="features section" aria-label="Restaurant features">
+  <div class="container">
+    <div class="features__list">
+      {cases.map((item, i) => (
+        <article
+          class="features__item"
+          class:list={[{ 'features__item--reversed': i % 2 !== 0 }]}
+          data-animate
+          data-delay={String(i * 0.1)}
+        >
+          <div class="features__image-wrap">
+            {item.image ? (
+              <img
+                class="features__image-img"
+                src={withBase(item.image)}
+                alt={item.title}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div class="features__image-placeholder">
+                <span class="features__image-label">{item.title}</span>
+              </div>
+            )}
+          </div>
+
+          <div class="features__text">
+            <div class="features__tags">
+              {item.tags.map((tag) => (
+                <span class="features__tag">{tag}</span>
+              ))}
+            </div>
+            <h3 class="features__title display">{item.title}</h3>
+            <p class="features__desc">{item.description}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .features {
+    background: var(--color-bg);
+  }
+
+  .features__list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+  }
+
+  .features__item {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-xl);
+    align-items: center;
+  }
+
+  .features__item--reversed {
+    direction: rtl;
+  }
+
+  .features__item--reversed > * {
+    direction: ltr;
+  }
+
+  .features__image-wrap {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 2px;
+    position: relative;
+  }
+
+  .features__image-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .features__image-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-card);
+    display: flex;
+    align-items: flex-end;
+    padding: var(--space-lg);
+  }
+
+  .features__image-label {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: var(--text-base);
+    color: var(--color-fg-faint);
+  }
+
+  .features__text {
+    padding-block: var(--space-lg);
+  }
+
+  .features__tags {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    margin-bottom: var(--space-md);
+  }
+
+  .features__tag {
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent-secondary);
+    border: 1px solid rgba(201, 169, 110, 0.25);
+    padding: 0.3em 0.8em;
+    border-radius: 2px;
+  }
+
+  .features__title {
+    font-size: var(--text-2xl);
+    color: var(--color-fg);
+    margin-bottom: var(--space-md);
+  }
+
+  .features__desc {
+    color: var(--color-fg-muted);
+    line-height: var(--leading-normal);
+    max-width: 420px;
+  }
+
+  @media (max-width: 768px) {
+    .features__item,
+    .features__item--reversed {
+      grid-template-columns: 1fr;
+      direction: ltr;
+    }
+
+    .features__desc {
+      max-width: none;
+    }
+  }
+</style>

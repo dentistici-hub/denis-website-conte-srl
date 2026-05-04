@@ -1,0 +1,154 @@
+---
+/**
+ * LottiePlayer — renders a Lottie JSON animation. Plays on viewport entry,
+ * respects reduced-motion (renders the first frame as a still), and cleans up
+ * on unmount. Uses lottie-web (dep present in every starter via Session 1).
+ *
+ * Lottie is our path to custom illustration animation without a video file —
+ * small, crisp, animated vector art. Use lottiefiles.com free library or
+ * commission per client.
+ *
+ * Props:
+ *   - src: string — required. Public path to a .json file, e.g.
+ *       `/lotties/process-loop.json`. Applies `withBase()` so GH Pages base
+ *       paths work.
+ *   - loop: boolean | number — default true. Pass a number to loop N times.
+ *   - autoplay: boolean — default true. If false, plays only on viewport entry.
+ *   - trigger: 'view' | 'hover' | 'click' | 'none' — when to play when
+ *       autoplay is false. Default 'view'.
+ *   - speed: number — playback speed multiplier. Default 1.
+ *   - renderer: 'svg' | 'canvas'. Default 'svg' (crisper, selectable).
+ *   - aspectRatio: string — CSS aspect-ratio. Default '1 / 1'.
+ *   - class passthrough.
+ *
+ * Usage:
+ *   <LottiePlayer src={withBase('/lotties/hero-loop.json')} loop speed={0.8} />
+ *
+ *   <LottiePlayer
+ *     src={withBase('/lotties/arrow-icon.json')}
+ *     autoplay={false}
+ *     trigger="hover"
+ *     aspectRatio="1 / 1"
+ *   />
+ */
+type Renderer = 'svg' | 'canvas';
+type Trigger = 'view' | 'hover' | 'click' | 'none';
+
+interface Props {
+  src: string;
+  loop?: boolean | number;
+  autoplay?: boolean;
+  trigger?: Trigger;
+  speed?: number;
+  renderer?: Renderer;
+  aspectRatio?: string;
+  class?: string;
+}
+
+const {
+  src,
+  loop = true,
+  autoplay = true,
+  trigger = 'view',
+  speed = 1,
+  renderer = 'svg',
+  aspectRatio = '1 / 1',
+  class: className = '',
+} = Astro.props;
+
+const config = JSON.stringify({ src, loop, autoplay, trigger, speed, renderer });
+---
+
+<div
+  class:list={['lottie-player', className]}
+  style={`aspect-ratio: ${aspectRatio};`}
+  data-lottie={config}
+  aria-hidden="true"
+></div>
+
+<style>
+  .lottie-player {
+    display: block;
+    width: 100%;
+    position: relative;
+  }
+  .lottie-player :global(svg) {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+</style>
+
+<script>
+  import lottie from 'lottie-web';
+  import type { AnimationItem } from 'lottie-web';
+
+  interface LottieConfig {
+    src: string;
+    loop: boolean | number;
+    autoplay: boolean;
+    trigger: 'view' | 'hover' | 'click' | 'none';
+    speed: number;
+    renderer: 'svg' | 'canvas';
+  }
+
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function initLottie(): void {
+    const players = document.querySelectorAll<HTMLElement>('[data-lottie]');
+    if (players.length === 0) return;
+
+    const reduced = isReducedMotion();
+
+    players.forEach((el) => {
+      if (el.dataset.lottieInitialized === 'true') return;
+      el.dataset.lottieInitialized = 'true';
+
+      let cfg: LottieConfig;
+      try { cfg = JSON.parse(el.dataset.lottie || '{}'); } catch { return; }
+
+      // For reduced-motion users, render the first frame as a still.
+      const anim: AnimationItem = lottie.loadAnimation({
+        container: el,
+        renderer: cfg.renderer,
+        loop: reduced ? false : (cfg.loop === true ? true : cfg.loop === false ? false : cfg.loop),
+        autoplay: reduced ? false : cfg.autoplay,
+        path: cfg.src,
+      });
+
+      anim.setSpeed(cfg.speed);
+
+      if (reduced) {
+        anim.addEventListener('DOMLoaded', () => anim.goToAndStop(0, true));
+        return;
+      }
+
+      if (!cfg.autoplay) {
+        if (cfg.trigger === 'view' && 'IntersectionObserver' in window) {
+          const io = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                anim.play();
+                io.disconnect();
+              }
+            });
+          }, { threshold: 0.25 });
+          io.observe(el);
+        } else if (cfg.trigger === 'hover') {
+          el.addEventListener('pointerenter', () => anim.play());
+          el.addEventListener('pointerleave', () => anim.pause());
+        } else if (cfg.trigger === 'click') {
+          el.style.cursor = 'pointer';
+          el.addEventListener('click', () => anim.play());
+        }
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLottie, { once: true });
+  } else {
+    initLottie();
+  }
+</script>

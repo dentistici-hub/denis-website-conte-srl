@@ -1,0 +1,402 @@
+---
+/**
+ * InteractiveThreeScene — scaffold for custom Three.js scenes that need
+ * cursor coupling, scroll coupling, and SPA-safe disposal.
+ *
+ * Three.js is NOT a dependency of this primitive. Users bring their own
+ * Three.js (or any WebGL library) and call `registerThreeScene(id, setup)`
+ * from a sibling `<script type="module">`. The primitive provides:
+ *
+ *   - the wrapper div + canvas (sized to container, DPR-capped)
+ *   - a shared RAF loop with `elapsed` + `delta` per frame
+ *   - resize observer (dispatches a `resize` event on the canvas)
+ *   - pointer tracking → `getMouse() -> [x, y]` in [0..1]
+ *   - optional scroll coupling → `getScroll() -> { progress, velocity }`
+ *   - optional sticky pinning (lighter than ScrollPinSection)
+ *   - `pauseOffscreen` via IntersectionObserver
+ *   - reduced-motion path: single paint of the final state, no RAF loop
+ *   - WebGL-unsupported path: CSS fallback background, no init
+ *   - SPA-safe teardown on `astro:before-swap` and `pagehide`
+ *
+ * Props:
+ *   - id: string (required) — unique id for the hook registry
+ *   - height: CSS length, default '100vh'
+ *   - scrollCoupled: boolean, default false
+ *   - pinned: boolean, default false (wraps canvas in position: sticky)
+ *   - pauseOffscreen: boolean, default true
+ *   - mouseReactive: boolean, default true
+ *   - dpr: number, default min(devicePixelRatio, 2)
+ *   - class passthrough
+ *
+ * Usage:
+ *   <InteractiveThreeScene id="hero-sphere" height="100vh" scrollCoupled pinned>
+ *     <script type="module">
+ *       import { registerThreeScene } from '@components/motion-primitives/scene-registry.ts';
+ *       import * as THREE from 'three';
+ *
+ *       registerThreeScene('hero-sphere', ({ canvas, onFrame, onDispose, getMouse, getScroll }) => {
+ *         const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+ *         const scene = new THREE.Scene();
+ *         const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+ *         // ... geometries, materials, lights
+ *
+ *         canvas.addEventListener('resize', () => {
+ *           const { width, height } = canvas;
+ *           renderer.setSize(width, height, false);
+ *           camera.aspect = width / height;
+ *           camera.updateProjectionMatrix();
+ *         });
+ *
+ *         onFrame(({ elapsed, delta }) => {
+ *           const [mx, my] = getMouse();
+ *           const scroll = getScroll(); // null if !scrollCoupled
+ *           // per-frame updates
+ *           renderer.render(scene, camera);
+ *         });
+ *
+ *         onDispose(() => {
+ *           renderer.dispose();
+ *           scene.traverse((obj) => {
+ *             if ((obj as any).geometry) (obj as any).geometry.dispose?.();
+ *             const mat = (obj as any).material;
+ *             if (Array.isArray(mat)) mat.forEach((m) => m.dispose?.());
+ *             else mat?.dispose?.();
+ *           });
+ *         });
+ *       });
+ *     </script>
+ *   </InteractiveThreeScene>
+ *
+ * Reduced motion: onFrame is called ONCE with `elapsed=0, delta=0` so the
+ * scene paints its final state, then the RAF loop never starts.
+ *
+ * Anti-stack: one InteractiveThreeScene per hero. Don't combine with
+ * ShaderCanvas on the same section — they fight for GPU.
+ */
+interface Props {
+  id: string;
+  height?: string;
+  scrollCoupled?: boolean;
+  pinned?: boolean;
+  pauseOffscreen?: boolean;
+  mouseReactive?: boolean;
+  dpr?: number;
+  class?: string;
+}
+
+const {
+  id,
+  height = '100vh',
+  scrollCoupled = false,
+  pinned = false,
+  pauseOffscreen = true,
+  mouseReactive = true,
+  dpr,
+  class: className = '',
+} = Astro.props;
+
+const config = JSON.stringify({
+  scrollCoupled,
+  pinned,
+  pauseOffscreen,
+  mouseReactive,
+  dpr: dpr ?? null,
+});
+---
+
+<div
+  class:list={['interactive-three-scene', { 'is-pinned': pinned }, className]}
+  style={`--its-height: ${height};`}
+  data-scene-id={id}
+  data-scene-config={config}
+>
+  <div class="interactive-three-scene__sticky">
+    <canvas class="interactive-three-scene__canvas" aria-hidden="true"></canvas>
+  </div>
+  <slot />
+</div>
+
+<style>
+  .interactive-three-scene {
+    position: relative;
+    width: 100%;
+    height: var(--its-height, 100vh);
+    background: var(--scene-fallback-bg, #0b0b0b);
+  }
+  .interactive-three-scene.is-pinned {
+    /* Outer element is taller than viewport; inner sticky holds the canvas. */
+    height: var(--its-height, 100vh);
+  }
+  .interactive-three-scene__sticky {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    top: 0;
+  }
+  .interactive-three-scene.is-pinned .interactive-three-scene__sticky {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+  .interactive-three-scene__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  .interactive-three-scene.has-failed .interactive-three-scene__canvas {
+    display: none;
+  }
+</style>
+
+<script>
+  import {
+    _mountScene,
+    _unmountScene,
+    type MountConfig,
+  } from './scene-registry.ts';
+
+  interface SceneConfig {
+    scrollCoupled: boolean;
+    pinned: boolean;
+    pauseOffscreen: boolean;
+    mouseReactive: boolean;
+    dpr: number | null;
+  }
+
+  interface ActiveScene {
+    id: string;
+    host: HTMLElement;
+    canvas: HTMLCanvasElement;
+    rafId: number;
+    resizeObs: ResizeObserver | null;
+    intersectObs: IntersectionObserver | null;
+    scrollHandler: (() => void) | null;
+    pointerHandler: ((e: PointerEvent) => void) | null;
+    disposed: boolean;
+  }
+
+  const active: ActiveScene[] = [];
+
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const hasWebGL = (canvas: HTMLCanvasElement): boolean => {
+    try {
+      const ctx =
+        canvas.getContext('webgl2') ||
+        canvas.getContext('webgl') ||
+        canvas.getContext('experimental-webgl');
+      return !!ctx;
+    } catch {
+      return false;
+    }
+  };
+
+  function initInteractiveThreeScenes(): void {
+    const hosts = document.querySelectorAll<HTMLElement>('[data-scene-id]');
+    if (hosts.length === 0) return;
+
+    hosts.forEach((host) => {
+      if (host.dataset.sceneInitialized === 'true') return;
+      host.dataset.sceneInitialized = 'true';
+
+      const id = host.dataset.sceneId || '';
+      if (!id) return;
+
+      let cfg: SceneConfig;
+      try {
+        cfg = JSON.parse(host.dataset.sceneConfig || '{}');
+      } catch {
+        return;
+      }
+
+      const canvas = host.querySelector<HTMLCanvasElement>(
+        '.interactive-three-scene__canvas',
+      );
+      if (!canvas) return;
+
+      // Probe WebGL support on a throwaway canvas — probing the real one
+      // would claim its context and prevent the user from picking webgl2.
+      const probe = document.createElement('canvas');
+      if (!hasWebGL(probe)) {
+        console.warn(
+          `InteractiveThreeScene "${id}": WebGL unavailable, showing CSS fallback.`,
+        );
+        host.classList.add('has-failed');
+        return;
+      }
+
+      const dprCap = cfg.dpr ?? Math.min(window.devicePixelRatio || 1, 2);
+
+      const mouse: [number, number] = [0.5, 0.5];
+      let scrollState: { progress: number; velocity: number } | null =
+        cfg.scrollCoupled ? { progress: 0, velocity: 0 } : null;
+
+      const getMouse = (): [number, number] => [mouse[0], mouse[1]];
+      const getScroll = () =>
+        scrollState ? { progress: scrollState.progress, velocity: scrollState.velocity } : null;
+
+      // Size canvas to container * dpr. Dispatches a `resize` event on the
+      // canvas so the user's renderer can re-sync.
+      const resize = (): void => {
+        const rect = canvas.getBoundingClientRect();
+        const w = Math.max(1, Math.round(rect.width * dprCap));
+        const h = Math.max(1, Math.round(rect.height * dprCap));
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+          canvas.dispatchEvent(new Event('resize'));
+        }
+      };
+
+      const mountConfig: MountConfig = { canvas, host, getMouse, getScroll };
+      const record = _mountScene(id, mountConfig);
+      // Initial size pass BEFORE user's onFrame fires (user reads canvas.width
+      // in setup; must be non-zero).
+      resize();
+
+      const sceneEntry: ActiveScene = {
+        id,
+        host,
+        canvas,
+        rafId: 0,
+        resizeObs: null,
+        intersectObs: null,
+        scrollHandler: null,
+        pointerHandler: null,
+        disposed: false,
+      };
+      active.push(sceneEntry);
+
+      // Resize observer — fires on layout changes.
+      if ('ResizeObserver' in window) {
+        sceneEntry.resizeObs = new ResizeObserver(() => resize());
+        sceneEntry.resizeObs.observe(host);
+      } else {
+        window.addEventListener('resize', resize);
+      }
+
+      // Pointer tracking.
+      if (cfg.mouseReactive && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        sceneEntry.pointerHandler = (e: PointerEvent) => {
+          const rect = host.getBoundingClientRect();
+          mouse[0] = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+          mouse[1] = Math.max(0, Math.min(1, 1 - (e.clientY - rect.top) / rect.height));
+        };
+        host.addEventListener('pointermove', sceneEntry.pointerHandler);
+      }
+
+      // Scroll coupling — progress = host intersection progress; velocity in px/ms.
+      if (cfg.scrollCoupled && scrollState) {
+        let lastY = window.scrollY;
+        let lastT = performance.now();
+        sceneEntry.scrollHandler = () => {
+          const rect = host.getBoundingClientRect();
+          const vh = window.innerHeight;
+          // 0 when the host is about to enter from below, 1 when it has
+          // fully passed above. Clamp to [0, 1].
+          const raw = (vh - rect.top) / (vh + rect.height);
+          const progress = Math.max(0, Math.min(1, raw));
+          const now = performance.now();
+          const y = window.scrollY;
+          const dt = Math.max(1, now - lastT);
+          const vel = (y - lastY) / dt;
+          lastY = y;
+          lastT = now;
+          if (scrollState) {
+            scrollState.progress = progress;
+            scrollState.velocity = vel;
+          }
+        };
+        window.addEventListener('scroll', sceneEntry.scrollHandler, { passive: true });
+        sceneEntry.scrollHandler();
+      }
+
+      // Frame driver.
+      const start = performance.now();
+      let last = start;
+      let visible = true;
+      let running = true;
+
+      const tick = (): void => {
+        if (sceneEntry.disposed) return;
+        const now = performance.now();
+        const elapsed = now - start;
+        const delta = now - last;
+        last = now;
+        for (const cb of record.frameCbs) {
+          try {
+            cb({ elapsed, delta });
+          } catch (err) {
+            console.warn(`InteractiveThreeScene "${id}": frame callback failed`, err);
+          }
+        }
+        if (running && visible) sceneEntry.rafId = requestAnimationFrame(tick);
+      };
+
+      if (isReducedMotion()) {
+        // Paint final state once, then stop.
+        for (const cb of record.frameCbs) {
+          try {
+            cb({ elapsed: 0, delta: 0 });
+          } catch (err) {
+            console.warn(`InteractiveThreeScene "${id}": reduced-motion paint failed`, err);
+          }
+        }
+        running = false;
+      } else {
+        if (cfg.pauseOffscreen && 'IntersectionObserver' in window) {
+          sceneEntry.intersectObs = new IntersectionObserver(
+            (entries) => {
+              for (const entry of entries) {
+                visible = entry.isIntersecting;
+                if (visible && running && !sceneEntry.disposed) {
+                  cancelAnimationFrame(sceneEntry.rafId);
+                  last = performance.now();
+                  sceneEntry.rafId = requestAnimationFrame(tick);
+                }
+              }
+            },
+            { threshold: 0 },
+          );
+          sceneEntry.intersectObs.observe(host);
+        }
+        sceneEntry.rafId = requestAnimationFrame(tick);
+      }
+    });
+  }
+
+  function disposeScene(entry: ActiveScene): void {
+    if (entry.disposed) return;
+    entry.disposed = true;
+    cancelAnimationFrame(entry.rafId);
+    entry.resizeObs?.disconnect();
+    entry.intersectObs?.disconnect();
+    if (entry.scrollHandler) window.removeEventListener('scroll', entry.scrollHandler);
+    if (entry.pointerHandler) entry.host.removeEventListener('pointermove', entry.pointerHandler);
+    _unmountScene(entry.id);
+    entry.host.dataset.sceneInitialized = 'false';
+  }
+
+  function disposeAll(): void {
+    while (active.length) {
+      const entry = active.pop();
+      if (entry) disposeScene(entry);
+    }
+  }
+
+  // SPA-safe teardown. Astro view transitions fire `astro:before-swap`; a
+  // normal navigation fires `pagehide`. Both paths route through disposeAll.
+  document.addEventListener('astro:before-swap', disposeAll);
+  window.addEventListener('pagehide', disposeAll);
+
+  // Re-init on view-transition swap-in.
+  document.addEventListener('astro:page-load', initInteractiveThreeScenes);
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initInteractiveThreeScenes, { once: true });
+  } else {
+    initInteractiveThreeScenes();
+  }
+</script>

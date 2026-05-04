@@ -1,0 +1,261 @@
+---
+// Rotating word in a single position — BAT Architecture style.
+// Static prefix (e.g. "We build") + cycling noun (e.g. "offices / warehouses / homes / stadiums") + optional suffix.
+// Honors prefers-reduced-motion: shows only the first word, no animation.
+import type { SiteConfig } from '../../types/content';
+
+interface Props {
+  site: SiteConfig;
+  /** Static text before the rotating word. Keep short. */
+  prefix: string;
+  /** Words to cycle through. Min 2, max ~8 for tasteful pacing. */
+  words: string[];
+  /** Optional static text after the rotating word (e.g. "across Europe"). */
+  suffix?: string;
+  /** Rotation interval in ms. Default 3000. */
+  intervalMs?: number;
+  /** Small eyebrow line shown above. */
+  eyebrow?: string;
+  /** Optional description paragraph below the headline. Defaults to site.description. */
+  description?: string | null;
+  primaryCtaLabel?: string;
+  primaryCtaHref?: string;
+  secondaryCtaLabel?: string;
+  secondaryCtaHref?: string;
+}
+
+const {
+  site,
+  prefix,
+  words,
+  suffix = '',
+  intervalMs = 3000,
+  eyebrow = site.contact.city ?? '',
+  description = site.description,
+  primaryCtaLabel = 'Get in Touch',
+  primaryCtaHref = '#contact',
+  secondaryCtaLabel,
+  secondaryCtaHref,
+} = Astro.props;
+
+const safeWords = words.filter(Boolean);
+---
+
+<section class="hero" aria-label="Introduction" data-hero-rotating data-interval={intervalMs}>
+  <div class="hero__inner container">
+    {eyebrow && <p class="hero__eyebrow">{eyebrow}</p>}
+
+    <h1 class="hero__headline display">
+      <span class="hero__prefix">{prefix}</span>
+      <span class="hero__words" aria-live="polite" data-hero-words>
+        {/* Visually-hidden full list for screen readers + fallback if JS is off. */}
+        <span class="sr-only">{safeWords.join(', ')}</span>
+        {safeWords.map((w, i) => (
+          <span
+            class="hero__word"
+            class:list={[{ 'is-active': i === 0 }]}
+            aria-hidden="true"
+            data-word-index={i}
+          >{w}</span>
+        ))}
+      </span>
+      {suffix && <span class="hero__suffix">{suffix}</span>}
+    </h1>
+
+    {description && <p class="hero__desc">{description}</p>}
+
+    <div class="hero__actions">
+      <a href={primaryCtaHref} class="hero__cta-primary">{primaryCtaLabel}</a>
+      {secondaryCtaLabel && secondaryCtaHref && (
+        <a href={secondaryCtaHref} class="hero__cta-secondary">{secondaryCtaLabel}</a>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    padding-top: calc(var(--space-2xl) + 72px);
+    padding-bottom: var(--space-2xl);
+    background: var(--color-bg);
+  }
+
+  .hero__inner {
+    max-width: 1100px;
+  }
+
+  .hero__eyebrow {
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin: 0 0 var(--space-md);
+  }
+
+  .hero__headline {
+    font-size: var(--text-display);
+    color: var(--color-fg);
+    line-height: var(--leading-tight);
+    margin: 0 0 var(--space-lg);
+    letter-spacing: var(--display-spacing, -0.02em);
+  }
+
+  .hero__prefix,
+  .hero__suffix {
+    display: inline;
+  }
+
+  .hero__words {
+    position: relative;
+    display: inline-block;
+    vertical-align: baseline;
+    overflow: hidden;
+    /* Width animates to the active word's width — set by the script. */
+    min-width: 1ch;
+  }
+
+  .hero__word {
+    display: inline-block;
+    color: var(--color-accent);
+    font-style: italic;
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+    transition:
+      opacity var(--duration-normal, 500ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)),
+      transform var(--duration-normal, 500ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1));
+    position: absolute;
+    inset: 0 auto 0 0;
+    white-space: nowrap;
+  }
+
+  .hero__word.is-active {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+    position: relative;
+  }
+
+  .hero__word.is-leaving {
+    opacity: 0;
+    transform: translate3d(0, -100%, 0);
+    position: absolute;
+  }
+
+  .hero__desc {
+    font-size: var(--text-lg);
+    color: var(--color-fg-muted);
+    line-height: var(--leading-relaxed, var(--leading-normal));
+    max-width: 52ch;
+    margin: 0 0 var(--space-lg);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-md);
+    align-items: center;
+  }
+
+  .hero__cta-primary {
+    display: inline-flex;
+    padding: 0.875rem 2rem;
+    background: var(--color-accent);
+    color: #fff;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+    border-radius: 2px;
+    transition: background var(--duration-fast);
+  }
+
+  .hero__cta-primary:hover { background: var(--color-accent-hover); }
+
+  .hero__cta-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 2px;
+    transition: color var(--duration-fast), border-color var(--duration-fast);
+  }
+
+  .hero__cta-secondary:hover { color: var(--color-accent); border-color: var(--color-accent); }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__word {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-hero-rotating]').forEach((root) => {
+    const container = root.querySelector<HTMLElement>('[data-hero-words]');
+    if (!container) return;
+    const words = Array.from(container.querySelectorAll<HTMLElement>('.hero__word'));
+    if (words.length < 2) return;
+
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduceMotion) return; // First word stays visible — spec-required fallback.
+
+    const intervalMs = Number(root.dataset.interval ?? 3000);
+    let currentIndex = 0;
+
+    // Size the container to the widest word to avoid layout shift.
+    function syncWidth() {
+      let max = 0;
+      words.forEach((w) => {
+        const prev = w.style.cssText;
+        w.style.position = 'relative';
+        w.style.opacity = '1';
+        w.style.transform = 'none';
+        max = Math.max(max, w.offsetWidth);
+        w.style.cssText = prev;
+      });
+      container.style.width = `${max}px`;
+    }
+
+    syncWidth();
+    window.addEventListener('resize', syncWidth, { passive: true });
+
+    setInterval(() => {
+      const nextIndex = (currentIndex + 1) % words.length;
+      const current = words[currentIndex];
+      const next = words[nextIndex];
+
+      current.classList.remove('is-active');
+      current.classList.add('is-leaving');
+
+      // Force reflow so the transition on `next` runs from initial state.
+      next.offsetHeight;
+      next.classList.add('is-active');
+
+      // Clean up after transition completes.
+      setTimeout(() => {
+        current.classList.remove('is-leaving');
+      }, 600);
+
+      currentIndex = nextIndex;
+    }, intervalMs);
+  });
+</script>

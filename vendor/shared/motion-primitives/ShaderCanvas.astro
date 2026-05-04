@@ -1,0 +1,410 @@
+---
+/**
+ * ShaderCanvas — minimal WebGL fragment shader on a full-container canvas.
+ * No Three.js. Renders a single full-screen quad with a GLSL fragment shader
+ * the author supplies (or the default animated color-mesh).
+ *
+ * Purpose: signature shader backgrounds — animated gradients, flow fields,
+ * noise, distortions. One per hero is enough for award-grade personality.
+ *
+ * Uniforms available in the fragment shader by default:
+ *   - uniform float u_time;       // seconds since init
+ *   - uniform vec2  u_resolution; // canvas pixel dimensions
+ *   - uniform vec2  u_mouse;      // [0..1] cursor position (or [0.5,0.5])
+ *
+ * Custom uniforms:
+ *   Pass a `uniforms` prop to expose arbitrary values to both the fragment
+ *   and the (optional) custom vertex shader. Supported value shapes:
+ *
+ *     | JS value                        | GLSL type | gl call        |
+ *     | ------------------------------- | --------- | -------------- |
+ *     | number                          | float     | uniform1f      |
+ *     | [n, n]                          | vec2      | uniform2fv     |
+ *     | [n, n, n]                       | vec3      | uniform3fv     |
+ *     | [n, n, n, n]                    | vec4      | uniform4fv     |
+ *
+ *   Uniform names are the object keys. Locations are looked up once after
+ *   link; if the shader doesn't actually reference a name, WebGL returns
+ *   null and the primitive silently skips it (no error, no crash).
+ *
+ *   Example:
+ *     <ShaderCanvas
+ *       fragment={weaveShader}
+ *       uniforms={{
+ *         u_density: 220.0,
+ *         u_threadColor: [0.45, 0.35, 0.28],
+ *         u_bulgeRadius: 0.12,
+ *       }}
+ *       height="80vh"
+ *     />
+ *
+ * Custom vertex shader:
+ *   The default vertex shader draws a static full-screen quad. Pass a
+ *   `vertex` prop to swap in your own GLSL when you need:
+ *     - displaced / rippled quad geometry
+ *     - non-fullscreen geometry (requires matching buffer, advanced use)
+ *     - per-vertex uniforms driving the fragment via varyings
+ *   The default `a_position` attribute and the full-screen quad buffer are
+ *   still set up, so a custom vertex shader should still declare
+ *   `attribute vec2 a_position;` unless it overrides the geometry path.
+ *
+ * Props:
+ *   - fragment: string — GLSL fragment shader source. If omitted, uses the
+ *       built-in animated color mesh.
+ *   - vertex: string — GLSL vertex shader source. If omitted, uses the
+ *       built-in full-screen-quad vertex shader.
+ *   - uniforms: Record<string, number | vec2 | vec3 | vec4> — custom
+ *       uniforms wired every frame alongside the built-in ones.
+ *   - colors: string[] — when using the default shader, provide 2-4 CSS hex
+ *       colors that sample into the mesh. Default ['#141414', '#FA4E03',
+ *       '#F5EFE0'].
+ *   - height: CSS length for the canvas container. Default '100vh'.
+ *   - pauseOffscreen: boolean. Default true.
+ *   - mouseReactive: boolean. Adds pointermove listener and writes u_mouse.
+ *       Default true.
+ *   - class passthrough.
+ *
+ * Usage (default shader):
+ *   <ShaderCanvas
+ *     colors={['#0B1A2E', '#1E5F99', '#F6F8FB']}
+ *     height="100vh"
+ *   />
+ *
+ * Usage (custom shader):
+ *   ---
+ *   const myFrag = `
+ *     precision highp float;
+ *     uniform float u_time;
+ *     uniform vec2 u_resolution;
+ *     uniform float u_density;
+ *     uniform vec3 u_threadColor;
+ *     void main() {
+ *       vec2 uv = gl_FragCoord.xy / u_resolution;
+ *       gl_FragColor = vec4(u_threadColor * abs(sin(u_time + uv.x * u_density)), 1.0);
+ *     }
+ *   `;
+ *   ---
+ *   <ShaderCanvas
+ *     fragment={myFrag}
+ *     uniforms={{ u_density: 220.0, u_threadColor: [0.45, 0.35, 0.28] }}
+ *     height="60vh"
+ *   />
+ */
+type UniformValue =
+  | number
+  | [number, number]
+  | [number, number, number]
+  | [number, number, number, number];
+
+interface Props {
+  fragment?: string;
+  vertex?: string;
+  uniforms?: Record<string, UniformValue>;
+  colors?: string[];
+  height?: string;
+  pauseOffscreen?: boolean;
+  mouseReactive?: boolean;
+  class?: string;
+}
+
+const {
+  fragment,
+  vertex,
+  uniforms = {},
+  colors = ['#141414', '#FA4E03', '#F5EFE0'],
+  height = '100vh',
+  pauseOffscreen = true,
+  mouseReactive = true,
+  class: className = '',
+} = Astro.props;
+
+// Convert hex colors -> GLSL vec3 literals inserted into the default shader.
+function hexToVec3(hex: string): string {
+  const clean = hex.replace('#', '').padEnd(6, '0');
+  const r = parseInt(clean.slice(0, 2), 16) / 255;
+  const g = parseInt(clean.slice(2, 4), 16) / 255;
+  const b = parseInt(clean.slice(4, 6), 16) / 255;
+  return `vec3(${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)})`;
+}
+
+const palette = colors.slice(0, 4).map(hexToVec3);
+while (palette.length < 3) palette.push(palette[palette.length - 1] || 'vec3(0.0)');
+
+const DEFAULT_FRAGMENT = `
+precision highp float;
+uniform float u_time;
+uniform vec2 u_resolution;
+uniform vec2 u_mouse;
+
+// Simple 2D simplex-ish noise.
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  float a = hash(i);
+  float b = hash(i + vec2(1.0, 0.0));
+  float c = hash(i + vec2(0.0, 1.0));
+  float d = hash(i + vec2(1.0, 1.0));
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
+}
+
+void main() {
+  vec2 uv = gl_FragCoord.xy / u_resolution;
+  uv -= 0.5;
+  uv.x *= u_resolution.x / u_resolution.y;
+
+  float t = u_time * 0.12;
+  vec2 warp = vec2(noise(uv * 1.2 + t), noise(uv * 1.2 - t)) - 0.5;
+  uv += warp * 0.4;
+  uv += (u_mouse - 0.5) * 0.1;
+
+  float f = noise(uv * 2.0 + t);
+  vec3 c1 = ${palette[0]};
+  vec3 c2 = ${palette[1]};
+  vec3 c3 = ${palette[2]};
+  vec3 col = mix(c1, c2, smoothstep(0.2, 0.6, f));
+  col = mix(col, c3, smoothstep(0.55, 0.9, f));
+
+  gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+const fragSource = fragment ?? DEFAULT_FRAGMENT;
+const config = JSON.stringify({
+  fragment: fragSource,
+  vertex: vertex ?? null,
+  uniforms: uniforms ?? {},
+  pauseOffscreen,
+  mouseReactive,
+});
+---
+
+<div
+  class:list={['shader-canvas', className]}
+  style={`height: ${height};`}
+  data-shader={config}
+>
+  <canvas class="shader-canvas__canvas"></canvas>
+</div>
+
+<style>
+  .shader-canvas {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #141414;
+  }
+  .shader-canvas__canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .shader-canvas__canvas { animation: none; }
+  }
+</style>
+
+<script>
+  type UniformValue =
+    | number
+    | [number, number]
+    | [number, number, number]
+    | [number, number, number, number];
+
+  interface ShaderConfig {
+    fragment: string;
+    vertex: string | null;
+    uniforms: Record<string, UniformValue>;
+    pauseOffscreen: boolean;
+    mouseReactive: boolean;
+  }
+
+  interface CachedUniform {
+    location: WebGLUniformLocation;
+    width: 1 | 2 | 3 | 4;
+    value: UniformValue;
+  }
+
+  const VERTEX_SRC = `
+    attribute vec2 a_position;
+    void main() {
+      gl_Position = vec4(a_position, 0.0, 1.0);
+    }
+  `;
+
+  function uniformWidth(v: UniformValue): 1 | 2 | 3 | 4 {
+    if (typeof v === 'number') return 1;
+    if (Array.isArray(v)) {
+      if (v.length === 2) return 2;
+      if (v.length === 3) return 3;
+      if (v.length === 4) return 4;
+    }
+    return 1;
+  }
+
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function compileShader(gl: WebGLRenderingContext, type: number, src: string): WebGLShader | null {
+    const shader = gl.createShader(type);
+    if (!shader) return null;
+    gl.shaderSource(shader, src);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      console.warn('ShaderCanvas compile error:', gl.getShaderInfoLog(shader));
+      gl.deleteShader(shader);
+      return null;
+    }
+    return shader;
+  }
+
+  function initShaderCanvas(): void {
+    const hosts = document.querySelectorAll<HTMLElement>('[data-shader]');
+    if (hosts.length === 0) return;
+
+    hosts.forEach((host) => {
+      if (host.dataset.shaderInitialized === 'true') return;
+      host.dataset.shaderInitialized = 'true';
+
+      let cfg: ShaderConfig;
+      try { cfg = JSON.parse(host.dataset.shader || '{}'); } catch { return; }
+
+      const canvas = host.querySelector<HTMLCanvasElement>('.shader-canvas__canvas');
+      if (!canvas) return;
+
+      const gl = canvas.getContext('webgl', { antialias: false, premultipliedAlpha: false });
+      if (!gl) {
+        console.warn('ShaderCanvas: WebGL not supported, skipping.');
+        return;
+      }
+
+      const vertexSrc = cfg.vertex && cfg.vertex.length > 0 ? cfg.vertex : VERTEX_SRC;
+      const vs = compileShader(gl, gl.VERTEX_SHADER, vertexSrc);
+      const fs = compileShader(gl, gl.FRAGMENT_SHADER, cfg.fragment);
+      if (!vs || !fs) return;
+
+      const program = gl.createProgram();
+      if (!program) return;
+      gl.attachShader(program, vs);
+      gl.attachShader(program, fs);
+      gl.linkProgram(program);
+      if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+        console.warn('ShaderCanvas link error:', gl.getProgramInfoLog(program));
+        return;
+      }
+      gl.useProgram(program);
+
+      // Full-screen quad.
+      const buffer = gl.createBuffer();
+      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+      const aPos = gl.getAttribLocation(program, 'a_position');
+      gl.enableVertexAttribArray(aPos);
+      gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
+
+      const uTime = gl.getUniformLocation(program, 'u_time');
+      const uRes = gl.getUniformLocation(program, 'u_resolution');
+      const uMouse = gl.getUniformLocation(program, 'u_mouse');
+
+      // Cache locations + widths for custom uniforms. getUniformLocation
+      // returns null for names the shader doesn't reference — we skip those
+      // silently so callers can pass a superset of uniforms safely.
+      const customUniforms: CachedUniform[] = [];
+      if (cfg.uniforms && typeof cfg.uniforms === 'object') {
+        for (const name of Object.keys(cfg.uniforms)) {
+          const value = cfg.uniforms[name];
+          const location = gl.getUniformLocation(program, name);
+          if (location === null) continue;
+          customUniforms.push({
+            location,
+            width: uniformWidth(value),
+            value,
+          });
+        }
+      }
+
+      const resize = (): void => {
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        const w = canvas.clientWidth * dpr;
+        const h = canvas.clientHeight * dpr;
+        if (canvas.width !== w || canvas.height !== h) {
+          canvas.width = w;
+          canvas.height = h;
+          gl.viewport(0, 0, w, h);
+        }
+      };
+
+      const mouse: [number, number] = [0.5, 0.5];
+      if (cfg.mouseReactive && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        host.addEventListener('pointermove', (e) => {
+          const rect = host.getBoundingClientRect();
+          mouse[0] = (e.clientX - rect.left) / rect.width;
+          mouse[1] = 1 - (e.clientY - rect.top) / rect.height;
+        });
+      }
+
+      const start = performance.now();
+      let rafId = 0;
+      let visible = true;
+      let running = true;
+
+      const draw = (): void => {
+        resize();
+        const t = (performance.now() - start) / 1000;
+        gl.uniform1f(uTime, t);
+        gl.uniform2f(uRes, canvas.width, canvas.height);
+        gl.uniform2f(uMouse, mouse[0], mouse[1]);
+
+        // Custom uniforms: dispatched per frame using the width recorded at
+        // init time. Values are static for now (not re-read from props), but
+        // vec2/3/4 go through Float32Array so WebGL accepts them.
+        for (let i = 0; i < customUniforms.length; i++) {
+          const u = customUniforms[i];
+          const v = u.value;
+          if (u.width === 1) {
+            gl.uniform1f(u.location, v as number);
+          } else if (u.width === 2) {
+            gl.uniform2fv(u.location, new Float32Array(v as [number, number]));
+          } else if (u.width === 3) {
+            gl.uniform3fv(u.location, new Float32Array(v as [number, number, number]));
+          } else {
+            gl.uniform4fv(u.location, new Float32Array(v as [number, number, number, number]));
+          }
+        }
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        if (running && visible) rafId = requestAnimationFrame(draw);
+      };
+
+      if (isReducedMotion()) {
+        running = false;
+        draw();
+        return;
+      }
+
+      if (cfg.pauseOffscreen && 'IntersectionObserver' in window) {
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            visible = entry.isIntersecting;
+            if (visible && running) {
+              cancelAnimationFrame(rafId);
+              rafId = requestAnimationFrame(draw);
+            }
+          });
+        }, { threshold: 0 });
+        io.observe(host);
+      }
+
+      rafId = requestAnimationFrame(draw);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initShaderCanvas, { once: true });
+  } else {
+    initShaderCanvas();
+  }
+</script>

@@ -1,0 +1,793 @@
+---
+interface MegaItem {
+  title: string;
+  description: string;
+  href: string;
+  icon?: string;
+}
+
+interface MegaLink {
+  label: string;
+  href: string;
+  mega?: MegaItem[];
+}
+
+interface Props {
+  brandName: string;
+  links: MegaLink[];
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const {
+  brandName,
+  links,
+  ctaLabel,
+  ctaHref = '#contact',
+} = Astro.props;
+---
+
+<header class="nav" id="nav-mega" role="banner">
+  <div class="nav__inner container">
+    <a href="/" class="nav__brand" aria-label={`${brandName}`}>
+      <span class="nav__brand-text display">{brandName}</span>
+    </a>
+
+    <nav class="nav__desktop" aria-label="Primary">
+      <ul class="nav__list" role="menubar">
+        {links.map((link, i) => {
+          const hasMega = Array.isArray(link.mega) && link.mega.length > 0;
+          const panelId = `nav-mega-panel-${i}`;
+          return (
+            <li
+              class={`nav__item ${hasMega ? 'has-mega' : ''}`}
+              role="none"
+              data-mega-item={hasMega ? 'true' : undefined}
+            >
+              {hasMega ? (
+                <button
+                  type="button"
+                  class="nav__link nav__trigger"
+                  role="menuitem"
+                  aria-haspopup="true"
+                  aria-expanded="false"
+                  aria-controls={panelId}
+                  data-mega-trigger
+                >
+                  <span>{link.label}</span>
+                  <svg
+                    class="nav__chevron"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path d="M6 9l6 6 6-6" />
+                  </svg>
+                </button>
+              ) : (
+                <a href={link.href} class="nav__link" role="menuitem">{link.label}</a>
+              )}
+
+              {hasMega && (
+                <div
+                  class="nav__mega"
+                  id={panelId}
+                  role="menu"
+                  aria-label={link.label}
+                  aria-hidden="true"
+                  data-mega-panel
+                >
+                  <div class="nav__mega-inner container">
+                    <div class="nav__mega-grid">
+                      {link.mega!.map((item) => (
+                        <a href={item.href} class="nav__mega-card" role="menuitem">
+                          {item.icon && (
+                            <div class="nav__mega-icon" aria-hidden="true">
+                              <Fragment set:html={item.icon} />
+                            </div>
+                          )}
+                          <div class="nav__mega-body">
+                            <span class="nav__mega-title display">{item.title}</span>
+                            <span class="nav__mega-desc">{item.description}</span>
+                          </div>
+                          <svg
+                            class="nav__mega-arrow"
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path d="M5 12h14M12 5l7 7-7 7" />
+                          </svg>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
+
+    <div class="nav__actions">
+      {ctaLabel && <a href={ctaHref} class="nav__cta">{ctaLabel}</a>}
+      <button
+        class="nav__burger"
+        id="nav-mega-toggle"
+        aria-expanded="false"
+        aria-controls="nav-mega-mobile"
+        aria-label="Toggle menu"
+      >
+        <span class="nav__burger-line"></span>
+        <span class="nav__burger-line"></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="nav__mobile" id="nav-mega-mobile" aria-hidden="true">
+    <nav class="nav__mobile-inner container" aria-label="Mobile navigation">
+      <ul class="nav__mobile-list">
+        {links.map((link, i) => {
+          const hasMega = Array.isArray(link.mega) && link.mega.length > 0;
+          const mobilePanelId = `nav-mega-mobile-panel-${i}`;
+          return (
+            <li class="nav__mobile-item" style={`--index: ${i}`}>
+              {hasMega ? (
+                <>
+                  <button
+                    type="button"
+                    class="nav__mobile-link nav__mobile-trigger display"
+                    aria-expanded="false"
+                    aria-controls={mobilePanelId}
+                    data-mobile-mega-trigger
+                  >
+                    <span>{link.label}</span>
+                    <svg
+                      class="nav__chevron"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      aria-hidden="true"
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                  </button>
+                  <ul class="nav__mobile-sublist" id={mobilePanelId} aria-hidden="true">
+                    {link.mega!.map((item) => (
+                      <li>
+                        <a href={item.href} class="nav__mobile-sublink">
+                          <span class="nav__mobile-sublink-title">{item.title}</span>
+                          <span class="nav__mobile-sublink-desc">{item.description}</span>
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <a href={link.href} class="nav__mobile-link display">{link.label}</a>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+      {ctaLabel && <a href={ctaHref} class="nav__mobile-cta">{ctaLabel}</a>}
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-header);
+    padding-block: var(--space-md);
+    background: var(--color-bg);
+    border-bottom: 1px solid transparent;
+    transition: border-color var(--duration-normal) var(--ease-out),
+                background var(--duration-normal) var(--ease-out);
+  }
+
+  .nav.is-scrolled {
+    border-bottom-color: var(--color-border);
+    background: color-mix(in srgb, var(--color-bg) 92%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+  }
+
+  .nav__brand {
+    flex-shrink: 0;
+    text-decoration: none;
+  }
+
+  .nav__brand-text {
+    font-size: clamp(1rem, 0.8rem + 0.8vw, 1.4rem);
+    color: var(--color-fg);
+    transition: color var(--duration-fast);
+  }
+
+  .nav__brand-text:hover {
+    color: var(--color-accent);
+  }
+
+  .nav__desktop {
+    display: none;
+    flex: 1;
+    justify-content: center;
+  }
+
+  @media (min-width: 960px) {
+    .nav__desktop { display: flex; }
+  }
+
+  .nav__list {
+    list-style: none;
+    display: flex;
+    gap: var(--space-lg);
+    padding: 0;
+    margin: 0;
+  }
+
+  .nav__item {
+    position: static;
+  }
+
+  .nav__link,
+  .nav__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    background: none;
+    border: 0;
+    padding: 6px 2px;
+    cursor: pointer;
+    position: relative;
+    transition: color var(--duration-fast);
+  }
+
+  .nav__link:focus-visible,
+  .nav__trigger:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+    border-radius: 2px;
+  }
+
+  .nav__link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 100%;
+    height: 1px;
+    background: var(--color-accent);
+    transition: right var(--duration-normal) var(--ease-out);
+  }
+
+  .nav__link:hover,
+  .nav__trigger:hover,
+  .nav__item.is-open > .nav__trigger {
+    color: var(--color-accent);
+  }
+
+  .nav__link:hover::after,
+  .nav__item.is-open > .nav__link::after {
+    right: 0;
+  }
+
+  .nav__chevron {
+    transition: transform var(--duration-fast) var(--ease-out);
+  }
+
+  .nav__item.is-open > .nav__trigger .nav__chevron {
+    transform: rotate(180deg);
+  }
+
+  /* Mega panel */
+  .nav__mega {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: var(--color-bg-elevated);
+    border-top: 1px solid var(--color-border);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 24px 48px -24px color-mix(in srgb, var(--color-fg) 20%, transparent);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px);
+    transition: opacity var(--duration-normal) var(--ease-out),
+                transform var(--duration-normal) var(--ease-out),
+                visibility 0s linear var(--duration-normal);
+  }
+
+  .nav__item.is-open .nav__mega {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity var(--duration-normal) var(--ease-out),
+                transform var(--duration-normal) var(--ease-out),
+                visibility 0s linear 0s;
+  }
+
+  .nav__mega-inner {
+    padding-block: var(--space-lg);
+  }
+
+  .nav__mega-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--space-md);
+  }
+
+  @media (max-width: 1100px) {
+    .nav__mega-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .nav__mega-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--color-fg);
+    background: var(--color-bg-elevated);
+    transition: background var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+  }
+
+  .nav__mega-card:hover,
+  .nav__mega-card:focus-visible {
+    background: var(--color-bg-card);
+    border-color: var(--color-border);
+    transform: translateY(-2px);
+  }
+
+  .nav__mega-card:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .nav__mega-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-accent);
+    background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    border-radius: 4px;
+  }
+
+  .nav__mega-icon :global(svg) {
+    width: 20px;
+    height: 20px;
+  }
+
+  .nav__mega-body {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .nav__mega-title {
+    font-size: var(--text-base);
+    color: var(--color-fg);
+    line-height: var(--leading-tight);
+  }
+
+  .nav__mega-desc {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    line-height: var(--leading-snug);
+  }
+
+  .nav__mega-arrow {
+    flex-shrink: 0;
+    margin-top: 4px;
+    color: var(--color-accent);
+    opacity: 0;
+    transform: translateX(-4px);
+    transition: opacity var(--duration-fast), transform var(--duration-fast) var(--ease-out);
+  }
+
+  .nav__mega-card:hover .nav__mega-arrow,
+  .nav__mega-card:focus-visible .nav__mega-arrow {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
+  .nav__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    flex-shrink: 0;
+  }
+
+  .nav__cta {
+    display: none;
+    padding: 0.5rem 1.25rem;
+    background: var(--color-accent);
+    color: var(--color-fg-on-dark, #fff);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    border-radius: 2px;
+    text-decoration: none;
+    transition: background var(--duration-fast);
+  }
+
+  .nav__cta:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .nav__cta:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 3px;
+  }
+
+  @media (min-width: 640px) {
+    .nav__cta { display: inline-flex; }
+  }
+
+  .nav__burger {
+    position: relative;
+    width: 28px;
+    height: 18px;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: calc(var(--z-header) + 1);
+    cursor: pointer;
+  }
+
+  .nav__burger:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 4px;
+  }
+
+  @media (min-width: 960px) {
+    .nav__burger { display: none; }
+  }
+
+  .nav__burger-line {
+    display: block;
+    width: 100%;
+    height: 1.5px;
+    background: var(--color-fg);
+    transition: transform var(--duration-normal) var(--ease-out), opacity var(--duration-fast);
+  }
+
+  .nav__burger[aria-expanded="true"] .nav__burger-line:first-child {
+    transform: translateY(8.25px) rotate(45deg);
+  }
+
+  .nav__burger[aria-expanded="true"] .nav__burger-line:last-child {
+    transform: translateY(-8.25px) rotate(-45deg);
+  }
+
+  /* Mobile menu */
+  .nav__mobile {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-header);
+    background: var(--color-bg);
+    overflow-y: auto;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-normal) var(--ease-out);
+  }
+
+  .nav__mobile[aria-hidden="false"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .nav__mobile-inner {
+    padding-top: 6rem;
+    padding-bottom: var(--space-xl);
+  }
+
+  .nav__mobile-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-xl) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .nav__mobile-item {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s var(--ease-out), transform 0.3s var(--ease-out);
+  }
+
+  .nav__mobile[aria-hidden="false"] .nav__mobile-item {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 0.4s calc(var(--index) * 0.07s) var(--ease-out),
+      transform 0.4s calc(var(--index) * 0.07s) var(--ease-out);
+  }
+
+  .nav__mobile-link,
+  .nav__mobile-trigger {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    font-size: var(--text-xl);
+    color: var(--color-fg);
+    text-decoration: none;
+    background: none;
+    border: 0;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    transition: color var(--duration-fast);
+  }
+
+  .nav__mobile-link:hover,
+  .nav__mobile-trigger:hover {
+    color: var(--color-accent);
+  }
+
+  .nav__mobile-trigger[aria-expanded="true"] .nav__chevron {
+    transform: rotate(180deg);
+  }
+
+  .nav__mobile-sublist {
+    list-style: none;
+    padding: 0;
+    margin: var(--space-sm) 0 0 0;
+    display: grid;
+    gap: var(--space-xs);
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height var(--duration-normal) var(--ease-out);
+  }
+
+  .nav__mobile-sublist[aria-hidden="false"] {
+    max-height: 2000px;
+  }
+
+  .nav__mobile-sublink {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: var(--space-sm) 0 var(--space-sm) var(--space-md);
+    border-left: 2px solid var(--color-border);
+    text-decoration: none;
+    color: var(--color-fg);
+    transition: border-color var(--duration-fast), color var(--duration-fast);
+  }
+
+  .nav__mobile-sublink:hover {
+    border-left-color: var(--color-accent);
+    color: var(--color-accent);
+  }
+
+  .nav__mobile-sublink-title {
+    font-size: var(--text-base);
+    font-weight: 600;
+  }
+
+  .nav__mobile-sublink-desc {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    line-height: var(--leading-snug);
+  }
+
+  .nav__mobile-cta {
+    display: inline-flex;
+    padding: 0.75rem 2rem;
+    background: var(--color-accent);
+    color: var(--color-fg-on-dark, #fff);
+    font-size: var(--text-base);
+    font-weight: 500;
+    border-radius: 2px;
+    text-decoration: none;
+    opacity: 0;
+    transition: background var(--duration-fast);
+  }
+
+  .nav__mobile-cta:hover {
+    background: var(--color-accent-hover);
+  }
+
+  .nav__mobile[aria-hidden="false"] .nav__mobile-cta {
+    opacity: 1;
+    transition: opacity 0.4s 0.35s var(--ease-out), background var(--duration-fast);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav,
+    .nav__mega,
+    .nav__mobile,
+    .nav__mobile-item,
+    .nav__chevron,
+    .nav__mega-arrow,
+    .nav__mega-card,
+    .nav__burger-line,
+    .nav__link::after {
+      transition: none !important;
+    }
+  }
+</style>
+
+<script>
+  const nav = document.getElementById('nav-mega');
+  if (nav) {
+    const isDesktop = () => window.matchMedia('(min-width: 960px)').matches;
+
+    // Scroll background shift
+    const onScroll = () => {
+      nav.classList.toggle('is-scrolled', window.scrollY > 50);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+
+    // --- Desktop mega menu ---
+    const megaItems = Array.from(
+      nav.querySelectorAll<HTMLLIElement>('[data-mega-item="true"]'),
+    );
+
+    const closeAll = () => {
+      megaItems.forEach((li) => {
+        li.classList.remove('is-open');
+        const trigger = li.querySelector<HTMLButtonElement>('[data-mega-trigger]');
+        const panel = li.querySelector<HTMLElement>('[data-mega-panel]');
+        trigger?.setAttribute('aria-expanded', 'false');
+        panel?.setAttribute('aria-hidden', 'true');
+      });
+    };
+
+    const openItem = (li: HTMLLIElement) => {
+      megaItems.forEach((other) => {
+        if (other !== li) {
+          other.classList.remove('is-open');
+          other.querySelector('[data-mega-trigger]')?.setAttribute('aria-expanded', 'false');
+          other.querySelector('[data-mega-panel]')?.setAttribute('aria-hidden', 'true');
+        }
+      });
+      li.classList.add('is-open');
+      li.querySelector('[data-mega-trigger]')?.setAttribute('aria-expanded', 'true');
+      li.querySelector('[data-mega-panel]')?.setAttribute('aria-hidden', 'false');
+    };
+
+    megaItems.forEach((li) => {
+      const trigger = li.querySelector<HTMLButtonElement>('[data-mega-trigger]');
+      if (!trigger) return;
+
+      // Hover intent on desktop
+      li.addEventListener('mouseenter', () => {
+        if (isDesktop()) openItem(li);
+      });
+      li.addEventListener('mouseleave', () => {
+        if (isDesktop()) {
+          li.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+          li.querySelector('[data-mega-panel]')?.setAttribute('aria-hidden', 'true');
+        }
+      });
+
+      // Click toggle (covers mobile-like-desktop tap and keyboard Enter/Space default)
+      trigger.addEventListener('click', (e) => {
+        e.preventDefault();
+        const isOpen = li.classList.contains('is-open');
+        if (isOpen) {
+          li.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+          li.querySelector('[data-mega-panel]')?.setAttribute('aria-hidden', 'true');
+        } else {
+          openItem(li);
+        }
+      });
+
+      // Close on focus leaving the item entirely
+      li.addEventListener('focusout', (e) => {
+        const next = e.relatedTarget as Node | null;
+        if (!next || !li.contains(next)) {
+          li.classList.remove('is-open');
+          trigger.setAttribute('aria-expanded', 'false');
+          li.querySelector('[data-mega-panel]')?.setAttribute('aria-hidden', 'true');
+        }
+      });
+    });
+
+    // Escape closes everything
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeAll();
+        const openItem = megaItems.find((li) => li.classList.contains('is-open'));
+        openItem?.querySelector<HTMLButtonElement>('[data-mega-trigger]')?.focus();
+      }
+    });
+
+    // Click outside closes panels
+    document.addEventListener('click', (e) => {
+      const target = e.target as Node;
+      if (!nav.contains(target)) closeAll();
+    });
+
+    // --- Mobile menu ---
+    const toggle = document.getElementById('nav-mega-toggle') as HTMLButtonElement | null;
+    const mobile = document.getElementById('nav-mega-mobile') as HTMLElement | null;
+    const mobileTriggers = nav.querySelectorAll<HTMLButtonElement>('[data-mobile-mega-trigger]');
+
+    if (toggle && mobile) {
+      toggle.addEventListener('click', () => {
+        const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+        toggle.setAttribute('aria-expanded', String(!isOpen));
+        mobile.setAttribute('aria-hidden', String(isOpen));
+        document.body.style.overflow = isOpen ? '' : 'hidden';
+      });
+
+      mobile.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((link) => {
+        link.addEventListener('click', () => {
+          toggle.setAttribute('aria-expanded', 'false');
+          mobile.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        });
+      });
+    }
+
+    mobileTriggers.forEach((trigger) => {
+      trigger.addEventListener('click', () => {
+        const isOpen = trigger.getAttribute('aria-expanded') === 'true';
+        trigger.setAttribute('aria-expanded', String(!isOpen));
+        const panelId = trigger.getAttribute('aria-controls');
+        if (panelId) {
+          const panel = document.getElementById(panelId);
+          panel?.setAttribute('aria-hidden', String(isOpen));
+        }
+      });
+    });
+
+    // On resize away from mobile, reset mobile overlay state so desktop behavior is clean
+    window.addEventListener('resize', () => {
+      if (isDesktop() && toggle && mobile) {
+        toggle.setAttribute('aria-expanded', 'false');
+        mobile.setAttribute('aria-hidden', 'true');
+        document.body.style.overflow = '';
+      }
+    });
+  }
+</script>

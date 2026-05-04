@@ -1,0 +1,54 @@
+---
+interface Props {
+  brandName?: string;
+}
+
+const { brandName = '' } = Astro.props;
+const letters = brandName.split('');
+---
+
+<div class="preloader" id="preloader" aria-hidden="true">
+  <div class="preloader__content">
+    {brandName && (
+      <span class="preloader__brand display" aria-label={brandName}>
+        {letters.map((char) => (
+          <span class="preloader__letter">{char === ' ' ? '\u00A0' : char}</span>
+        ))}
+      </span>
+    )}
+  </div>
+</div>
+
+<style>
+  .preloader {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-preloader);
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .preloader__content {
+    overflow: hidden;
+  }
+
+  .preloader__brand {
+    font-size: var(--text-2xl);
+    color: var(--color-fg);
+    display: flex;
+    gap: 0.02em;
+  }
+
+  .preloader__letter {
+    opacity: 0;
+    transform: translateY(12px);
+    display: inline-block;
+    color: var(--color-fg-muted);
+  }
+</style>
+
+<script>
+  import '@scripts/preloader';
+</script>

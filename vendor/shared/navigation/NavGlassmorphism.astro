@@ -1,0 +1,306 @@
+---
+import type { NavLink } from '../../types/content';
+
+interface Props {
+  brandName: string;
+  links: NavLink[];
+}
+
+const { brandName, links } = Astro.props;
+
+// Separate reserve link from other links
+const regularLinks = links.filter((l) => l.label !== 'Reserve');
+const reserveLink = links.find((l) => l.label === 'Reserve');
+---
+
+<header class="nav" id="nav">
+  <div class="nav__inner container">
+    <nav class="nav__links" aria-label="Main navigation">
+      {regularLinks.map((link) => (
+        <a href={link.href} class="nav__link">{link.label}</a>
+      ))}
+    </nav>
+
+    <a href="/" class="nav__brand display" aria-label={`${brandName} homepage`}>
+      {brandName}
+    </a>
+
+    <div class="nav__actions">
+      {reserveLink && (
+        <a href={reserveLink.href} class="nav__reserve">
+          {reserveLink.label}
+        </a>
+      )}
+      <button
+        class="nav__burger"
+        id="nav-burger"
+        aria-label="Open navigation menu"
+        aria-expanded="false"
+        aria-controls="nav-overlay"
+      >
+        <span class="nav__burger-bar"></span>
+        <span class="nav__burger-bar"></span>
+        <span class="nav__burger-bar"></span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- Mobile fullscreen overlay -->
+<div class="nav-overlay" id="nav-overlay" aria-hidden="true" role="dialog" aria-label="Navigation menu" aria-modal="true">
+  <button class="nav-overlay__close" id="nav-overlay-close" aria-label="Close navigation menu">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  </button>
+
+  <nav class="nav-overlay__links" aria-label="Mobile navigation">
+    {regularLinks.map((link) => (
+      <a href={link.href} class="nav-overlay__link">{link.label}</a>
+    ))}
+    {reserveLink && (
+      <a href={reserveLink.href} class="nav-overlay__link nav-overlay__link--reserve">
+        {reserveLink.label}
+      </a>
+    )}
+  </nav>
+</div>
+
+<style>
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-header);
+    padding-block: var(--space-md);
+    transition:
+      background var(--duration-normal) var(--ease-out),
+      backdrop-filter var(--duration-normal) var(--ease-out),
+      border-color var(--duration-normal) var(--ease-out);
+    border-bottom: 1px solid transparent;
+  }
+
+  .nav.is-scrolled {
+    background: rgba(13, 13, 13, 0.75);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-bottom-color: var(--color-border);
+  }
+
+  .nav__inner {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: var(--space-lg);
+  }
+
+  .nav__links {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+  }
+
+  .nav__link {
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-fg-muted);
+    transition: color var(--duration-fast) var(--ease-out);
+  }
+
+  .nav__link:hover {
+    color: var(--color-fg);
+  }
+
+  .nav__brand {
+    font-size: var(--text-lg);
+    color: var(--color-fg);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .nav__actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .nav__reserve {
+    font-size: var(--text-xs);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    padding: 0.5em 1.2em;
+    border-radius: 2px;
+    transition:
+      background var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .nav__reserve:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  /* Hamburger — hidden on desktop */
+  .nav__burger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    color: var(--color-fg);
+  }
+
+  .nav__burger-bar {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    transition: transform var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+  }
+
+  @media (max-width: 768px) {
+    .nav__inner {
+      grid-template-columns: 1fr auto;
+    }
+
+    .nav__links {
+      display: none;
+    }
+
+    .nav__actions {
+      display: flex;
+    }
+
+    .nav__burger {
+      display: flex;
+    }
+  }
+
+  /* Mobile overlay */
+  .nav-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-header) + 10);
+    background: rgba(13, 13, 13, 0.97);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-normal) var(--ease-out);
+  }
+
+  .nav-overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .nav-overlay__close {
+    position: absolute;
+    top: var(--space-lg);
+    right: var(--space-lg);
+    background: none;
+    border: none;
+    color: var(--color-fg-muted);
+    cursor: pointer;
+    padding: var(--space-sm);
+    transition: color var(--duration-fast);
+  }
+
+  .nav-overlay__close:hover {
+    color: var(--color-fg);
+  }
+
+  .nav-overlay__links {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xl);
+  }
+
+  .nav-overlay__link {
+    font-family: var(--font-display);
+    font-size: var(--text-3xl);
+    font-weight: 700;
+    color: var(--color-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    text-decoration: none;
+    transition: color var(--duration-fast);
+  }
+
+  .nav-overlay__link:hover {
+    color: var(--color-fg);
+  }
+
+  .nav-overlay__link--reserve {
+    color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    padding: 0.5em 1.4em;
+    font-size: var(--text-xl);
+  }
+
+  .nav-overlay__link--reserve:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+</style>
+
+<script>
+  const nav = document.getElementById('nav')!;
+  const burger = document.getElementById('nav-burger')!;
+  const overlay = document.getElementById('nav-overlay')!;
+  const closeBtn = document.getElementById('nav-overlay-close')!;
+
+  function openMenu() {
+    overlay.classList.add('is-open');
+    overlay.setAttribute('aria-hidden', 'false');
+    burger.setAttribute('aria-expanded', 'true');
+    document.body.style.overflow = 'hidden';
+    closeBtn.focus();
+  }
+
+  function closeMenu() {
+    overlay.classList.remove('is-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    burger.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+    burger.focus();
+  }
+
+  burger.addEventListener('click', openMenu);
+  closeBtn.addEventListener('click', closeMenu);
+
+  // Close on Esc key
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && overlay.classList.contains('is-open')) {
+      closeMenu();
+    }
+  });
+
+  // Close when a nav link is clicked
+  overlay.querySelectorAll('.nav-overlay__link').forEach((link) => {
+    link.addEventListener('click', closeMenu);
+  });
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      nav.classList.toggle('is-scrolled', window.scrollY > 60);
+    },
+    { passive: true },
+  );
+</script>

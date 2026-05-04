@@ -1,0 +1,176 @@
+---
+import type { Testimonial } from '../../types/content';
+
+interface Props {
+  /** Array of VP-level testimonials to rotate through. Preferred. */
+  testimonials?: Testimonial[];
+  /** Single testimonial. Backwards-compatible fallback; normalized into an array. */
+  testimonial?: Testimonial;
+  /** Auto-advance interval in ms. Defaults to 8000. */
+  interval?: number;
+}
+
+const { testimonials, testimonial, interval = 8000 } = Astro.props;
+
+const items: Testimonial[] = (testimonials && testimonials.length
+  ? testimonials
+  : testimonial
+    ? [testimonial]
+    : []
+).filter(Boolean);
+
+const uid = `tf-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<section
+  class="testimonial section"
+  aria-labelledby={`${uid}-label`}
+  data-testimonials-featured
+  data-interval={interval}
+>
+  <h2 id={`${uid}-label`} class="sr-only">Featured testimonial</h2>
+  <div class="container">
+    <div class="testimonial__stage" aria-live="polite" aria-atomic="true" data-animate>
+      {items.map((t, i) => (
+        <blockquote
+          class="testimonial__quote"
+          data-slide
+          data-index={i}
+          aria-hidden={i === 0 ? 'false' : 'true'}
+          data-active={i === 0 ? 'true' : 'false'}
+        >
+          <p class="testimonial__text display">&ldquo;{t.quote}&rdquo;</p>
+          <footer class="testimonial__attribution">
+            <cite class="testimonial__author">{t.author}</cite>
+            <span class="testimonial__meta">{t.role}, {t.company}</span>
+          </footer>
+        </blockquote>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .testimonial { padding-block: var(--space-2xl); }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .testimonial__stage {
+    position: relative;
+    max-width: 800px;
+  }
+
+  .testimonial__quote {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 700ms var(--ease-smooth, ease), visibility 0s linear 700ms;
+  }
+
+  .testimonial__quote[data-active='true'] {
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 700ms var(--ease-smooth, ease), visibility 0s linear 0s;
+  }
+
+  .testimonial__text {
+    font-size: var(--text-2xl);
+    font-weight: 400;
+    font-style: italic;
+    line-height: var(--leading-snug);
+    margin-bottom: var(--space-lg);
+  }
+
+  .testimonial__author {
+    display: block;
+    font-style: normal;
+    font-weight: 700;
+    font-size: var(--text-base);
+  }
+
+  .testimonial__meta {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .testimonial__quote {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  const roots = document.querySelectorAll<HTMLElement>('[data-testimonials-featured]');
+
+  roots.forEach((root) => {
+    const slides = Array.from(root.querySelectorAll<HTMLElement>('[data-slide]'));
+    if (slides.length <= 1) return;
+
+    const intervalMs = Number(root.dataset.interval) || 8000;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    let current = 0;
+    let timer: number | null = null;
+    let paused = false;
+
+    const show = (next: number) => {
+      if (next === current) return;
+      slides[current].setAttribute('data-active', 'false');
+      slides[current].setAttribute('aria-hidden', 'true');
+      slides[next].setAttribute('data-active', 'true');
+      slides[next].setAttribute('aria-hidden', 'false');
+      current = next;
+    };
+
+    const advance = () => show((current + 1) % slides.length);
+
+    const start = () => {
+      if (timer !== null || paused || reduceMotion.matches) return;
+      timer = window.setInterval(advance, intervalMs);
+    };
+
+    const stop = () => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const pause = () => {
+      paused = true;
+      stop();
+    };
+
+    const resume = () => {
+      paused = false;
+      start();
+    };
+
+    root.addEventListener('mouseenter', pause);
+    root.addEventListener('mouseleave', resume);
+    root.addEventListener('focusin', pause);
+    root.addEventListener('focusout', (e) => {
+      if (!root.contains(e.relatedTarget as Node)) resume();
+    });
+
+    reduceMotion.addEventListener('change', () => {
+      if (reduceMotion.matches) stop();
+      else start();
+    });
+
+    start();
+  });
+</script>

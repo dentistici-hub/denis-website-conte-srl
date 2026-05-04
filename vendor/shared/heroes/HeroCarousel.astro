@@ -1,0 +1,262 @@
+---
+// Full-viewport image carousel — NO text overlay, NO controls.
+// The photos ARE the statement. EMP / Noma / Smokestak approach.
+
+interface Slide {
+  /** Descriptive alt text for the image. Required. */
+  alt: string;
+  /** Primary image src (e.g. /images/hero-1.jpg). */
+  src?: string;
+  /** Optional responsive srcset string. */
+  srcset?: string;
+  /** Optional sizes attribute (defaults to 100vw). */
+  sizes?: string;
+  /** Optional source tags for <picture> — each is a media query + srcset pair. */
+  sources?: { media?: string; type?: string; srcset: string }[];
+  /** Optional label shown only in fallback mode when no image src is provided. */
+  fallbackLabel?: string;
+}
+
+interface Props {
+  slides: Slide[];
+  /** Autoplay interval in ms. Default 5000. Set to 0 to disable autoplay. */
+  intervalMs?: number;
+}
+
+const { slides, intervalMs = 5000 } = Astro.props;
+---
+
+<section class="hero" aria-label="Gallery" data-hero-carousel data-interval={intervalMs}>
+  <div class="hero__track" data-hero-track>
+    {slides.map((slide, i) => (
+      <div
+        class="hero__slide"
+        aria-hidden={i !== 0 ? 'true' : 'false'}
+        data-index={i}
+      >
+        {slide.src || slide.sources ? (
+          <picture class="hero__picture">
+            {slide.sources?.map((s) => (
+              <source media={s.media} type={s.type} srcset={s.srcset} />
+            ))}
+            <img
+              class="hero__img"
+              src={slide.src}
+              srcset={slide.srcset}
+              sizes={slide.sizes ?? '100vw'}
+              alt={slide.alt}
+              loading={i === 0 ? 'eager' : 'lazy'}
+              fetchpriority={i === 0 ? 'high' : 'auto'}
+              decoding="async"
+            />
+          </picture>
+        ) : (
+          <div class="hero__placeholder" role="presentation">
+            {slide.fallbackLabel && <span class="hero__placeholder-label">{slide.fallbackLabel}</span>}
+          </div>
+        )}
+      </div>
+    ))}
+  </div>
+
+  <div class="hero__scroll-cue" aria-hidden="true">
+    <span class="hero__scroll-line"></span>
+  </div>
+
+  <div class="hero__dots" aria-hidden="true" data-hero-dots>
+    {slides.map((_, i) => (
+      <span class="hero__dot" class:list={[{ 'is-active': i === 0 }]} data-dot={i}></span>
+    ))}
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    width: 100%;
+    height: 100svh;
+    min-height: 600px;
+    overflow: hidden;
+    background: var(--color-bg);
+  }
+
+  .hero__track {
+    position: absolute;
+    inset: 0;
+  }
+
+  .hero__slide {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 1.2s var(--ease-in-out);
+  }
+
+  .hero__slide.is-active {
+    opacity: 1;
+  }
+
+  .hero__picture,
+  .hero__img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .hero__placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-elevated);
+    display: flex;
+    align-items: flex-end;
+    padding: var(--space-lg);
+  }
+
+  .hero__placeholder-label {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: var(--text-lg);
+    color: var(--color-fg-faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* Dark overlay — subtle, just enough to ground the nav */
+  .hero__track::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      to bottom,
+      rgba(13, 13, 13, 0.3) 0%,
+      transparent 40%,
+      transparent 70%,
+      rgba(13, 13, 13, 0.6) 100%
+    );
+    pointer-events: none;
+  }
+
+  .hero__scroll-cue {
+    position: absolute;
+    bottom: var(--space-xl);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: var(--z-content);
+  }
+
+  .hero__scroll-line {
+    display: block;
+    width: 1px;
+    height: 48px;
+    background: var(--color-fg-muted);
+    animation: scroll-line 2s ease-in-out infinite;
+    transform-origin: top center;
+  }
+
+  @keyframes scroll-line {
+    0% { transform: scaleY(0); opacity: 0; }
+    40% { transform: scaleY(1); opacity: 1; }
+    80% { transform: scaleY(1); opacity: 0; }
+    100% { transform: scaleY(0); opacity: 0; }
+  }
+
+  .hero__dots {
+    position: absolute;
+    bottom: var(--space-lg);
+    right: var(--gutter);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: var(--z-content);
+  }
+
+  .hero__dot {
+    display: block;
+    width: 1px;
+    height: 20px;
+    background: var(--color-fg-faint);
+    transition: height var(--duration-normal) var(--ease-out), background var(--duration-normal);
+  }
+
+  .hero__dot.is-active {
+    height: 36px;
+    background: var(--color-fg-muted);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .hero__slide { transition: none; }
+    .hero__scroll-line { animation: none; }
+  }
+</style>
+
+<script>
+  // Scope to each HeroCarousel instance so multiple can coexist on a page.
+  document.querySelectorAll<HTMLElement>('[data-hero-carousel]').forEach((root) => {
+    const track = root.querySelector<HTMLElement>('[data-hero-track]');
+    const dotsContainer = root.querySelector<HTMLElement>('[data-hero-dots]');
+    if (!track || !dotsContainer) return;
+
+    const slides = track.querySelectorAll<HTMLElement>('.hero__slide');
+    const dots = dotsContainer.querySelectorAll<HTMLElement>('.hero__dot');
+    if (slides.length < 2) return; // nothing to advance through
+
+    const intervalMs = Number(root.dataset.interval ?? 5000);
+    const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let current = 0;
+    let interval: ReturnType<typeof setInterval> | null = null;
+
+    function goTo(index: number) {
+      slides[current].classList.remove('is-active');
+      slides[current].setAttribute('aria-hidden', 'true');
+      dots[current]?.classList.remove('is-active');
+
+      current = (index + slides.length) % slides.length;
+
+      slides[current].classList.add('is-active');
+      slides[current].setAttribute('aria-hidden', 'false');
+      dots[current]?.classList.add('is-active');
+    }
+
+    function startAutoplay() {
+      if (intervalMs <= 0 || reduceMotion) return;
+      stopAutoplay();
+      interval = setInterval(() => goTo(current + 1), intervalMs);
+    }
+
+    function stopAutoplay() {
+      if (interval) clearInterval(interval);
+      interval = null;
+    }
+
+    slides[0].classList.add('is-active');
+    slides[0].setAttribute('aria-hidden', 'false');
+    dots[0]?.classList.add('is-active');
+    startAutoplay();
+
+    track.addEventListener('mouseenter', stopAutoplay);
+    track.addEventListener('mouseleave', startAutoplay);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) stopAutoplay();
+      else startAutoplay();
+    });
+
+    let touchStartX = 0;
+    track.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    }, { passive: true });
+    track.addEventListener('touchend', (e) => {
+      const delta = e.changedTouches[0].clientX - touchStartX;
+      if (Math.abs(delta) > 50) {
+        stopAutoplay();
+        goTo(delta < 0 ? current + 1 : current - 1);
+        startAutoplay();
+      }
+    }, { passive: true });
+  });
+</script>

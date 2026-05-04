@@ -1,0 +1,143 @@
+---
+/**
+ * ParallaxLayer — wraps any content with scroll-driven transform. Supports
+ * translateY (classic parallax), translateX (rare but striking), scale, and
+ * rotation. Speeds relate to the element's center crossing viewport center.
+ *
+ * This is a richer version of the `data-anim-parallax` hook in
+ * components/animations/animations.ts. That one only does vertical translate.
+ * This one supports combinations and is driven by GSAP + ScrollTrigger, which
+ * plays nicely with smooth scroll (Lenis) and the rest of the motion stack.
+ *
+ * Props:
+ *   - y: number — translate-Y speed. + = slower than scroll, - = opposite.
+ *       Default 0.3. Set 0 to disable Y parallax.
+ *   - x: number — translate-X speed. Default 0. Useful for horizontal drift.
+ *   - scale: [start, end] — scale tween driven by scroll progress through the
+ *       element. e.g. [1, 1.2] grows 20% as it crosses viewport.
+ *   - rotate: [start, end] — rotation in degrees driven by scroll progress.
+ *   - start: string — ScrollTrigger start. Default `'top bottom'` (element
+ *       enters viewport bottom).
+ *   - end: string — ScrollTrigger end. Default `'bottom top'`.
+ *   - class passthrough.
+ *
+ * Usage:
+ *   <ParallaxLayer y={0.5}>
+ *     <img src="/images/cloud.png" alt="" />
+ *   </ParallaxLayer>
+ *
+ *   <ParallaxLayer scale={[0.9, 1.05]} y={0.2}>
+ *     <h2>Scroll me</h2>
+ *   </ParallaxLayer>
+ */
+interface Props {
+  y?: number;
+  x?: number;
+  scale?: [number, number];
+  rotate?: [number, number];
+  start?: string;
+  end?: string;
+  class?: string;
+}
+
+const {
+  y = 0.3,
+  x = 0,
+  scale,
+  rotate,
+  start = 'top bottom',
+  end = 'bottom top',
+  class: className = '',
+} = Astro.props;
+
+const configAttr = JSON.stringify({ y, x, scale, rotate, start, end });
+---
+
+<div class:list={['parallax-layer', className]} data-parallax={configAttr}>
+  <slot />
+</div>
+
+<style>
+  .parallax-layer {
+    will-change: transform;
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  const w = window as unknown as { __mpGsap?: boolean };
+  if (!w.__mpGsap) {
+    gsap.registerPlugin(ScrollTrigger);
+    w.__mpGsap = true;
+  }
+
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  interface ParallaxConfig {
+    y: number;
+    x: number;
+    scale?: [number, number];
+    rotate?: [number, number];
+    start: string;
+    end: string;
+  }
+
+  function initParallax(): void {
+    const layers = document.querySelectorAll<HTMLElement>('.parallax-layer[data-parallax]');
+    if (layers.length === 0) return;
+    if (isReducedMotion()) return;
+
+    layers.forEach((el) => {
+      if (el.dataset.parallaxInitialized === 'true') return;
+      el.dataset.parallaxInitialized = 'true';
+
+      let config: ParallaxConfig;
+      try {
+        config = JSON.parse(el.dataset.parallax || '{}');
+      } catch { return; }
+
+      const { y, x, scale, rotate, start, end } = config;
+
+      // Translate handled continuously — driven by scroll velocity through element.
+      // We build one ScrollTrigger with `scrub: true` and a single timeline that
+      // tweens all requested properties from 0 to 1 through the element's path.
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: el,
+          start,
+          end,
+          scrub: true,
+        },
+      });
+
+      const duration = 1; // the timeline is parametric; scrub is what ties it to scroll
+      const toState: gsap.TweenVars = {};
+
+      // For translate, we want the element to move by a fraction of the viewport
+      // height as scroll crosses it. Viewport height ≈ 100vh.
+      if (y !== 0) toState.yPercent = -100 * y;
+      if (x !== 0) toState.xPercent = -100 * x;
+      if (scale) {
+        gsap.set(el, { scale: scale[0] });
+        toState.scale = scale[1];
+      }
+      if (rotate) {
+        gsap.set(el, { rotation: rotate[0] });
+        toState.rotation = rotate[1];
+      }
+
+      if (Object.keys(toState).length > 0) {
+        tl.to(el, { ...toState, ease: 'none', duration });
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initParallax, { once: true });
+  } else {
+    initParallax();
+  }
+</script>

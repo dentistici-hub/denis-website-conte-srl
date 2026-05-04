@@ -1,0 +1,73 @@
+---
+import type { Stat } from '../../types/content';
+
+interface Props {
+  stats: Stat[];
+  label?: string;
+}
+
+const { stats, label = 'By the numbers' } = Astro.props;
+---
+
+<section class="trust-stats" aria-labelledby="trust-stats-label">
+  <div class="container">
+    <p class="trust-stats__label" id="trust-stats-label" data-animate>{label}</p>
+    <div class="trust-stats__grid">
+      {stats.map((stat, i) => (
+        <div class="trust-stats__item" data-animate style={`--index: ${i}`}>
+          <span class="trust-stats__value display" data-counter>{stat.value}</span>
+          <span class="trust-stats__item-label">{stat.label}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .trust-stats {
+    background: var(--color-bg-dark);
+    padding-block: var(--space-xl);
+  }
+
+  .trust-stats__label {
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-accent);
+    margin-bottom: var(--space-lg);
+    font-weight: 600;
+  }
+
+  .trust-stats__grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-lg);
+  }
+
+  .trust-stats__item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    padding-left: var(--space-md);
+    border-left: 3px solid var(--color-accent);
+  }
+
+  .trust-stats__value {
+    font-size: var(--text-3xl);
+    color: white;
+    line-height: 1;
+  }
+
+  .trust-stats__item-label {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.55);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  @media (min-width: 640px) {
+    .trust-stats__grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+</style>

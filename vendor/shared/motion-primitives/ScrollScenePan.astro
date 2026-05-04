@@ -1,0 +1,224 @@
+---
+/**
+ * ScrollScenePan — pans a wide SVG/image "scene" horizontally as the user
+ * scrolls vertically through a pinned section. This is the First Internet
+ * pattern — a single illustration divided into labeled districts, revealed
+ * by scrolling.
+ *
+ * The difference from HorizontalScrollTrack: this component takes a SINGLE
+ * wide asset (SVG or image) and pans it. HorizontalScrollTrack is for a row
+ * of discrete items.
+ *
+ * Props:
+ *   - src: string — required. Path to the wide asset (SVG or image).
+ *   - alt: string — required. Alt text for accessibility.
+ *   - height: string — viewport-relative height of the stage. Default '100vh'.
+ *   - distance: string — pin distance. Longer = slower pan. Default '300vh'.
+ *   - stops: Array<{ at: number, label?: string }> — optional district labels
+ *       that appear at progress thresholds 0..1. Rendered as `.scene-stop`
+ *       elements over the scene.
+ *   - id, class passthrough.
+ *
+ * Usage:
+ *   <ScrollScenePan
+ *     src={withBase('/images/world.svg')}
+ *     alt="Our services as a world map"
+ *     distance="400vh"
+ *     stops={[
+ *       { at: 0.1, label: 'Strategy' },
+ *       { at: 0.4, label: 'Design' },
+ *       { at: 0.7, label: 'Build' },
+ *       { at: 0.95, label: 'Launch' },
+ *     ]}
+ *   />
+ */
+export interface Stop { at: number; label?: string; }
+interface Props {
+  src: string;
+  alt: string;
+  height?: string;
+  distance?: string;
+  stops?: Stop[];
+  id?: string;
+  class?: string;
+}
+
+const {
+  src,
+  alt,
+  height = '100vh',
+  distance = '300vh',
+  stops = [],
+  id,
+  class: className = '',
+} = Astro.props;
+---
+
+<section
+  class:list={['scene-pan', className]}
+  data-scene-distance={distance}
+  style={`--scene-height: ${height};`}
+  id={id}
+>
+  <div class="scene-pan__stage">
+    <div class="scene-pan__track">
+      <img class="scene-pan__img" src={src} alt={alt} />
+    </div>
+    {stops.length > 0 && (
+      <div class="scene-pan__stops" aria-hidden="true">
+        {stops.map((stop: Stop) => (
+          <span
+            class="scene-pan__stop"
+            data-at={String(stop.at)}
+          >
+            {stop.label}
+          </span>
+        ))}
+      </div>
+    )}
+  </div>
+</section>
+
+<style>
+  .scene-pan {
+    position: relative;
+    width: 100%;
+    overflow: clip;
+  }
+  .scene-pan__stage {
+    position: relative;
+    width: 100%;
+    height: var(--scene-height, 100vh);
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+  .scene-pan__track {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    will-change: transform;
+  }
+  .scene-pan__img {
+    height: 100%;
+    width: auto;
+    max-width: none;
+    display: block;
+    user-select: none;
+    pointer-events: none;
+  }
+  .scene-pan__stops {
+    position: absolute;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 0.5rem;
+    z-index: 2;
+  }
+  .scene-pan__stop {
+    padding: 0.35rem 0.9rem;
+    font-family: inherit;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border: 1px solid currentColor;
+    border-radius: 999px;
+    opacity: 0.25;
+    transition: opacity 0.35s ease;
+  }
+  .scene-pan__stop.is-active { opacity: 1; }
+  @media (prefers-reduced-motion: reduce) {
+    .scene-pan__stage {
+      height: auto;
+      overflow-x: auto;
+    }
+    .scene-pan__img {
+      height: auto;
+      width: 100%;
+    }
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  const w = window as unknown as { __mpGsap?: boolean };
+  if (!w.__mpGsap) {
+    gsap.registerPlugin(ScrollTrigger);
+    w.__mpGsap = true;
+  }
+
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function initScenePan(): void {
+    const scenes = document.querySelectorAll<HTMLElement>('.scene-pan[data-scene-distance]');
+    if (scenes.length === 0) return;
+    if (isReducedMotion()) return;
+
+    scenes.forEach((scene) => {
+      if (scene.dataset.scenePanInitialized === 'true') return;
+      scene.dataset.scenePanInitialized = 'true';
+
+      const stage = scene.querySelector<HTMLElement>('.scene-pan__stage');
+      const track = scene.querySelector<HTMLElement>('.scene-pan__track');
+      const img = scene.querySelector<HTMLImageElement>('.scene-pan__img');
+      const stops = Array.from(scene.querySelectorAll<HTMLElement>('.scene-pan__stop'));
+      if (!stage || !track || !img) return;
+
+      const distance = scene.dataset.sceneDistance || '300vh';
+
+      const computePan = (): number => {
+        const trackWidth = track.scrollWidth;
+        const stageWidth = stage.clientWidth;
+        return Math.max(0, trackWidth - stageWidth);
+      };
+
+      let pan = computePan();
+
+      const setup = (): void => {
+        // Wait for image dimensions if the browser hasn't loaded it yet.
+        if (img.complete && img.naturalWidth > 0) {
+          pan = computePan();
+          ScrollTrigger.refresh();
+        }
+      };
+
+      if (!img.complete) {
+        img.addEventListener('load', setup, { once: true });
+      }
+
+      ScrollTrigger.create({
+        trigger: scene,
+        start: 'top top',
+        end: `+=${distance}`,
+        pin: stage,
+        pinSpacing: true,
+        scrub: 0.8,
+        anticipatePin: 1,
+        invalidateOnRefresh: true,
+        onRefresh: () => {
+          pan = computePan();
+        },
+        onUpdate: (self) => {
+          const p = self.progress;
+          gsap.set(track, { x: -pan * p });
+          stops.forEach((el) => {
+            const at = parseFloat(el.dataset.at || '0');
+            const isActive = Math.abs(p - at) < 0.08;
+            el.classList.toggle('is-active', isActive);
+          });
+        },
+      });
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScenePan, { once: true });
+  } else {
+    initScenePan();
+  }
+</script>

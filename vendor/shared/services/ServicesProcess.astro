@@ -1,0 +1,285 @@
+---
+import type { Service } from '../../types/content';
+
+interface ProcessStep {
+  number: string;
+  title: string;
+  description: string;
+  icon?: string;
+}
+
+interface Props {
+  sectionTitle?: string;
+  eyebrow?: string;
+  /** Explicit process steps (takes precedence over `services`). */
+  steps?: ProcessStep[];
+  /** Backward-compatible input: a plain Service[] gets auto-numbered into steps. */
+  services?: Service[];
+}
+
+const { sectionTitle, eyebrow, steps: explicitSteps, services } = Astro.props;
+
+const steps: ProcessStep[] =
+  explicitSteps ??
+  (services ?? []).map((s, i) => ({
+    number: String(i + 1).padStart(2, '0'),
+    title: s.title,
+    description: s.description,
+    icon: s.icon,
+  }));
+---
+
+<section class="process section" aria-labelledby={sectionTitle ? 'process-title' : undefined}>
+  <div class="container">
+    {(eyebrow || sectionTitle) && (
+      <div class="process__header">
+        {eyebrow && (
+          <div class="process__eyebrow" data-animate>
+            <span class="process__eyebrow-line"></span>
+            <span class="process__eyebrow-text">{eyebrow}</span>
+          </div>
+        )}
+        {sectionTitle && (
+          <h2 class="process__title display" id="process-title" data-animate>{sectionTitle}</h2>
+        )}
+      </div>
+    )}
+
+    <ol class="process__steps" role="list" data-process-steps>
+      {steps.map((step, i) => (
+        <li class="process__step" data-animate style={`--index: ${i}`}>
+          <div class="process__step-inner">
+            {step.icon && (
+              <div class="process__icon" aria-hidden="true">
+                <Fragment set:html={step.icon} />
+              </div>
+            )}
+            <span class="process__number display" aria-hidden="true">{step.number}</span>
+            <h3 class="process__step-title display">{step.title}</h3>
+            <p class="process__step-desc">{step.description}</p>
+          </div>
+          {i < steps.length - 1 && (
+            <svg
+              class="process__connector"
+              viewBox="0 0 100 10"
+              preserveAspectRatio="none"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                class="process__connector-path"
+                d="M0 5 L100 5"
+                vector-effect="non-scaling-stroke"
+              />
+            </svg>
+          )}
+        </li>
+      ))}
+    </ol>
+  </div>
+</section>
+
+<style>
+  .process__header {
+    margin-bottom: var(--space-xl);
+    max-width: 60ch;
+  }
+
+  .process__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .process__eyebrow-line {
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .process__eyebrow-text {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+  }
+
+  .process__title {
+    font-size: var(--text-3xl);
+    max-width: 18ch;
+  }
+
+  .process__steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+    position: relative;
+  }
+
+  .process__step {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .process__step-inner {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    padding: var(--space-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    transition: transform var(--duration-normal) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-normal) var(--ease-out);
+    height: 100%;
+  }
+
+  .process__step-inner:hover {
+    transform: translateY(-4px);
+    border-color: var(--color-border-strong, var(--color-accent));
+    box-shadow: 0 12px 32px -16px color-mix(in srgb, var(--color-accent) 40%, transparent);
+  }
+
+  .process__icon {
+    width: 40px;
+    height: 40px;
+    color: var(--color-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .process__icon :global(svg) {
+    width: 100%;
+    height: 100%;
+  }
+
+  .process__number {
+    font-size: var(--text-xl);
+    color: var(--color-accent);
+    opacity: 0.5;
+    line-height: 1;
+  }
+
+  .process__step-title {
+    font-size: var(--text-lg);
+    color: var(--color-fg);
+    margin: 0;
+  }
+
+  .process__step-desc {
+    color: var(--color-fg-muted);
+    line-height: var(--leading-normal);
+    margin: 0;
+  }
+
+  /* Vertical connector on mobile */
+  .process__connector {
+    width: 2px;
+    height: var(--space-lg);
+    align-self: center;
+    overflow: visible;
+    transform: rotate(90deg);
+    transform-origin: center;
+  }
+
+  .process__connector-path {
+    fill: none;
+    stroke: var(--color-accent);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    opacity: 0.5;
+  }
+
+  .process__step.is-revealed .process__connector-path {
+    animation: process-draw 0.9s var(--ease-out) forwards;
+    animation-delay: calc(var(--index, 0) * 0.12s + 0.25s);
+  }
+
+  @keyframes process-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  /* Desktop: horizontal row with horizontal connectors */
+  @media (min-width: 768px) {
+    .process__steps {
+      grid-template-columns: repeat(var(--process-cols, 4), minmax(0, 1fr));
+      gap: 0;
+      align-items: stretch;
+    }
+
+    .process__step {
+      flex-direction: row;
+      align-items: stretch;
+      gap: 0;
+    }
+
+    .process__step-inner {
+      flex: 1;
+    }
+
+    .process__connector {
+      width: var(--space-md);
+      height: auto;
+      min-height: 2px;
+      align-self: center;
+      transform: none;
+      flex-shrink: 0;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .process__step-inner {
+      transition: none;
+    }
+    .process__step-inner:hover {
+      transform: none;
+      box-shadow: none;
+    }
+    .process__connector-path {
+      stroke-dashoffset: 0;
+      animation: none !important;
+    }
+  }
+</style>
+
+<script>
+  const list = document.querySelector<HTMLOListElement>('[data-process-steps]');
+  if (list) {
+    const count = list.querySelectorAll('.process__step').length;
+    // Cap column count at 4 for readability; rows wrap beyond that via grid auto-flow fallback.
+    const cols = Math.min(Math.max(count, 1), 4);
+    list.style.setProperty('--process-cols', String(cols));
+
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduced && 'IntersectionObserver' in window) {
+      const io = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-revealed');
+              io.unobserve(entry.target);
+            }
+          }
+        },
+        { threshold: 0.25 },
+      );
+      list.querySelectorAll('.process__step').forEach((el) => io.observe(el));
+    } else {
+      list.querySelectorAll('.process__step').forEach((el) => el.classList.add('is-revealed'));
+    }
+  }
+</script>

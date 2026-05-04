@@ -1,0 +1,447 @@
+---
+import type { NavLink } from '../../types/content';
+
+interface SocialLink {
+  label: string;
+  href: string;
+  icon?: string;
+}
+
+interface Props {
+  brandName: string;
+  links: NavLink[];
+  ctaLabel?: string;
+  ctaHref?: string;
+  socialLinks?: SocialLink[];
+  logoHref?: string;
+}
+
+const {
+  brandName,
+  links,
+  ctaLabel,
+  ctaHref = '#contact',
+  socialLinks = [],
+  logoHref = '/',
+} = Astro.props;
+---
+
+<!-- Mobile top bar: only visible below breakpoint -->
+<header class="nav-side-mobile" id="nav-side-mobile">
+  <a href={logoHref} class="nav-side-mobile__brand display" aria-label={`${brandName} homepage`}>
+    {brandName}
+  </a>
+  <button
+    class="nav-side-mobile__burger"
+    id="nav-side-burger"
+    aria-label="Open navigation menu"
+    aria-expanded="false"
+    aria-controls="nav-side"
+  >
+    <span class="nav-side-mobile__burger-line"></span>
+    <span class="nav-side-mobile__burger-line"></span>
+    <span class="nav-side-mobile__burger-line"></span>
+  </button>
+</header>
+
+<!-- Sidebar: always fixed on desktop, slide-in panel on mobile -->
+<aside
+  class="nav-side"
+  id="nav-side"
+  aria-label="Primary navigation"
+  aria-hidden="true"
+>
+  <a href={logoHref} class="nav-side__brand display" aria-label={`${brandName} homepage`}>
+    {brandName}
+  </a>
+
+  <nav class="nav-side__menu" aria-label="Main navigation">
+    <ul class="nav-side__list" role="menubar" aria-orientation="vertical">
+      {links.map((link) => (
+        <li class="nav-side__item" role="none">
+          <a href={link.href} class="nav-side__link" role="menuitem">
+            <span class="nav-side__link-text">{link.label}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+
+  <div class="nav-side__footer">
+    {ctaLabel && (
+      <a href={ctaHref} class="nav-side__cta">{ctaLabel}</a>
+    )}
+
+    {socialLinks.length > 0 && (
+      <ul class="nav-side__social" aria-label="Social links">
+        {socialLinks.map((s) => (
+          <li>
+            <a href={s.href} class="nav-side__social-link" aria-label={s.label}>
+              {s.icon ? <span aria-hidden="true" set:html={s.icon}></span> : s.label.slice(0, 2).toUpperCase()}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </div>
+</aside>
+
+<!-- Backdrop for mobile drawer -->
+<div class="nav-side-backdrop" id="nav-side-backdrop" aria-hidden="true"></div>
+
+<style>
+  :root {
+    --nav-side-width: 0px;
+  }
+
+  /* Mobile top bar */
+  .nav-side-mobile {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-header);
+    height: 64px;
+    padding: 0 var(--space-md);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: color-mix(in srgb, var(--color-bg) 90%, transparent);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .nav-side-mobile__brand {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-fg);
+    text-decoration: none;
+  }
+
+  .nav-side-mobile__burger {
+    position: relative;
+    width: 32px;
+    height: 24px;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    color: var(--color-fg);
+    z-index: calc(var(--z-header) + 3);
+  }
+
+  .nav-side-mobile__burger-line {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: currentColor;
+    transition:
+      transform 0.35s var(--ease-out),
+      opacity 0.25s var(--ease-out);
+  }
+
+  .nav-side-mobile__burger[aria-expanded="true"] .nav-side-mobile__burger-line:nth-child(1) {
+    transform: translateY(11px) rotate(45deg);
+  }
+
+  .nav-side-mobile__burger[aria-expanded="true"] .nav-side-mobile__burger-line:nth-child(2) {
+    opacity: 0;
+  }
+
+  .nav-side-mobile__burger[aria-expanded="true"] .nav-side-mobile__burger-line:nth-child(3) {
+    transform: translateY(-11px) rotate(-45deg);
+  }
+
+  /* Sidebar */
+  .nav-side {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(84vw, 320px);
+    z-index: calc(var(--z-header) + 1);
+    background: var(--color-bg-elevated, var(--color-bg));
+    border-right: 1px solid var(--color-border);
+    padding: var(--space-lg) var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    transform: translateX(-100%);
+    transition: transform 0.4s var(--ease-out);
+    overflow-y: auto;
+  }
+
+  .nav-side[aria-hidden="false"] {
+    transform: translateX(0);
+  }
+
+  .nav-side__brand {
+    font-size: var(--text-xl);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-fg);
+    text-decoration: none;
+    padding-block: var(--space-sm);
+  }
+
+  .nav-side__menu {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+  }
+
+  .nav-side__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    width: 100%;
+  }
+
+  .nav-side__item {
+    width: 100%;
+  }
+
+  .nav-side__link {
+    display: block;
+    padding: 0.6em 0;
+    font-size: var(--text-base);
+    font-weight: 500;
+    color: var(--color-fg-muted);
+    text-decoration: none;
+    position: relative;
+    transition: color 0.2s var(--ease-out), padding-left 0.2s var(--ease-out);
+  }
+
+  .nav-side__link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--color-accent);
+    transform: translateY(-50%);
+    transition: width 0.25s var(--ease-out);
+  }
+
+  .nav-side__link:hover,
+  .nav-side__link:focus-visible {
+    color: var(--color-fg);
+    padding-left: 1.4em;
+  }
+
+  .nav-side__link:hover::before,
+  .nav-side__link:focus-visible::before {
+    width: 1em;
+  }
+
+  .nav-side__footer {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding-top: var(--space-md);
+    border-top: 1px solid var(--color-border);
+  }
+
+  .nav-side__cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.7em 1.4em;
+    background: var(--color-accent);
+    color: var(--color-bg);
+    border-radius: 100px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s var(--ease-out), transform 0.2s var(--ease-out);
+  }
+
+  .nav-side__cta:hover,
+  .nav-side__cta:focus-visible {
+    background: var(--color-accent-hover);
+    transform: translateY(-1px);
+  }
+
+  .nav-side__social {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .nav-side__social-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    color: var(--color-fg-muted);
+    font-size: var(--text-xs);
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      color 0.2s var(--ease-out),
+      border-color 0.2s var(--ease-out),
+      background 0.2s var(--ease-out);
+  }
+
+  .nav-side__social-link :global(svg) {
+    width: 16px;
+    height: 16px;
+    display: block;
+  }
+
+  .nav-side__social-link:hover,
+  .nav-side__social-link:focus-visible {
+    color: var(--color-fg);
+    border-color: var(--color-fg);
+  }
+
+  /* Backdrop for mobile */
+  .nav-side-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-header);
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s var(--ease-out);
+  }
+
+  .nav-side-backdrop.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Desktop: sidebar is always visible, no mobile top bar, no backdrop */
+  @media (min-width: 960px) {
+    :root {
+      --nav-side-width: 240px;
+    }
+
+    .nav-side-mobile {
+      display: none;
+    }
+
+    .nav-side {
+      width: var(--nav-side-width);
+      transform: translateX(0) !important;
+    }
+
+    .nav-side[aria-hidden="true"] {
+      transform: translateX(0);
+    }
+
+    .nav-side-backdrop {
+      display: none;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .nav-side,
+    .nav-side-backdrop,
+    .nav-side__link,
+    .nav-side__link::before,
+    .nav-side__cta,
+    .nav-side__social-link,
+    .nav-side-mobile__burger-line {
+      transition: none !important;
+    }
+  }
+</style>
+
+<script type="module">
+  const mql = window.matchMedia('(min-width: 960px)');
+  const sidebar = document.getElementById('nav-side');
+  const burger = document.getElementById('nav-side-burger');
+  const backdrop = document.getElementById('nav-side-backdrop');
+
+  if (sidebar && burger && backdrop) {
+    let lastFocus = null;
+
+    const syncDesktopState = () => {
+      if (mql.matches) {
+        // Desktop: sidebar always visible
+        sidebar.setAttribute('aria-hidden', 'false');
+        burger.setAttribute('aria-expanded', 'false');
+        backdrop.classList.remove('is-open');
+        document.body.style.overflow = '';
+      } else {
+        // Mobile: start closed
+        sidebar.setAttribute('aria-hidden', 'true');
+        burger.setAttribute('aria-expanded', 'false');
+        backdrop.classList.remove('is-open');
+        document.body.style.overflow = '';
+      }
+    };
+
+    const openMenu = () => {
+      if (mql.matches) return;
+      lastFocus = document.activeElement;
+      sidebar.setAttribute('aria-hidden', 'false');
+      burger.setAttribute('aria-expanded', 'true');
+      backdrop.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+      const firstLink = sidebar.querySelector('a');
+      if (firstLink) firstLink.focus();
+    };
+
+    const closeMenu = () => {
+      if (mql.matches) return;
+      sidebar.setAttribute('aria-hidden', 'true');
+      burger.setAttribute('aria-expanded', 'false');
+      backdrop.classList.remove('is-open');
+      document.body.style.overflow = '';
+      if (lastFocus && lastFocus.focus) {
+        lastFocus.focus();
+      } else {
+        burger.focus();
+      }
+    };
+
+    burger.addEventListener('click', () => {
+      const isOpen = burger.getAttribute('aria-expanded') === 'true';
+      if (isOpen) closeMenu();
+      else openMenu();
+    });
+
+    backdrop.addEventListener('click', closeMenu);
+
+    // Close on Esc (mobile only)
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !mql.matches && burger.getAttribute('aria-expanded') === 'true') {
+        closeMenu();
+      }
+    });
+
+    // Close when nav link clicked (mobile)
+    sidebar.querySelectorAll('a').forEach((link) => {
+      link.addEventListener('click', () => {
+        if (!mql.matches) closeMenu();
+      });
+    });
+
+    // React to breakpoint changes
+    if (mql.addEventListener) {
+      mql.addEventListener('change', syncDesktopState);
+    } else if (mql.addListener) {
+      mql.addListener(syncDesktopState);
+    }
+
+    syncDesktopState();
+  }
+</script>

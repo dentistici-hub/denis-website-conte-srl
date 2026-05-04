@@ -1,0 +1,121 @@
+---
+import type { SiteConfig, Stat } from '../../types/content';
+import SplitTextReveal from '../ui/SplitTextReveal.astro';
+
+interface Props {
+  site: SiteConfig;
+  stats?: Stat[];
+}
+
+const { site, stats } = Astro.props;
+---
+
+<section class="hero" id="hero" aria-label="Introduction">
+  <canvas class="hero__canvas" id="hero-canvas" aria-hidden="true"></canvas>
+
+  <div class="hero__content container">
+    <SplitTextReveal tag="h1" class="hero__title display" splitType="chars" stagger={0.02} delay={0.8}>
+      {site.tagline}
+    </SplitTextReveal>
+
+    <SplitTextReveal tag="p" class="hero__description" splitType="words" stagger={0.02} delay={1.2}>
+      {site.description}
+    </SplitTextReveal>
+
+    {stats && stats.length > 0 && (
+      <div class="hero__stats" data-animate>
+        {stats.map((stat) => (
+          <div class="hero__stat">
+            <span class="hero__stat-value display">{stat.value}</span>
+            <span class="hero__stat-label">{stat.label}</span>
+          </div>
+        ))}
+      </div>
+    )}
+
+    <a href="#work" class="hero__scroll" data-animate aria-label="Scroll to work">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M5 12l7 7 7-7"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .hero__canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: var(--z-bg);
+  }
+
+  .hero__content {
+    position: relative;
+    z-index: var(--z-content);
+    padding-block: var(--space-2xl);
+    max-width: 900px;
+  }
+
+  .hero__title {
+    font-size: var(--text-display);
+    margin-bottom: var(--space-lg);
+  }
+
+  .hero__description {
+    font-size: var(--text-xl);
+    color: var(--color-fg-muted);
+    max-width: 600px;
+    margin-bottom: var(--space-xl);
+    line-height: var(--leading-snug);
+  }
+
+  .hero__stats {
+    display: flex;
+    gap: var(--space-xl);
+    margin-bottom: var(--space-xl);
+  }
+
+  .hero__stat {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .hero__stat-value {
+    font-size: var(--text-3xl);
+    color: var(--color-accent);
+  }
+
+  .hero__stat-label {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .hero__scroll {
+    display: inline-flex;
+    color: var(--color-fg-muted);
+    animation: cursor-pulse 2s ease-in-out infinite;
+  }
+
+  @media (max-width: 768px) {
+    .hero__stats {
+      flex-wrap: wrap;
+      gap: var(--space-lg);
+    }
+  }
+</style>
+
+<script>
+  import '@scripts/hero-webgl';
+</script>

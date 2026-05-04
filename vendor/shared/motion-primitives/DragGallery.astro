@@ -1,0 +1,172 @@
+---
+/**
+ * DragGallery — cursor-grab horizontal scroll. The user clicks and drags
+ * left/right through a row of images or cards. On touch, native overflow-x
+ * scroll takes over. Momentum-based lerp keeps it feeling alive.
+ *
+ * Difference from HorizontalScrollTrack: that one is scroll-driven (pinned
+ * vertical scroll translates the track). This one is USER-driven via drag or
+ * swipe. No pinning, no scroll-trigger.
+ *
+ * Props:
+ *   - gap: string. Default `'clamp(0.75rem, 2vw, 1.5rem)'`.
+ *   - showIndicator: boolean. Default true. Renders a cursor-follow "drag"
+ *       hint on desktop.
+ *   - class passthrough.
+ *
+ * Children are flex items. Give each an explicit width.
+ *
+ * Usage:
+ *   <DragGallery>
+ *     {images.map((img) => (
+ *       <figure class="drag-card">
+ *         <img src={img.src} alt={img.alt} draggable="false" />
+ *       </figure>
+ *     ))}
+ *   </DragGallery>
+ */
+interface Props {
+  gap?: string;
+  showIndicator?: boolean;
+  class?: string;
+}
+
+const {
+  gap = 'clamp(0.75rem, 2vw, 1.5rem)',
+  showIndicator = true,
+  class: className = '',
+} = Astro.props;
+---
+
+<section
+  class:list={['drag-gallery', className]}
+  style={`--drag-gap: ${gap};`}
+  data-drag-gallery
+>
+  <div class="drag-gallery__viewport">
+    <div class="drag-gallery__track">
+      <slot />
+    </div>
+  </div>
+  {showIndicator && (
+    <span class="drag-gallery__indicator" aria-hidden="true">drag</span>
+  )}
+</section>
+
+<style>
+  .drag-gallery {
+    position: relative;
+    width: 100%;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  .drag-gallery.is-grabbing {
+    cursor: grabbing;
+  }
+  .drag-gallery__viewport {
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-behavior: auto;
+    overscroll-behavior-x: contain;
+  }
+  .drag-gallery__viewport::-webkit-scrollbar { display: none; }
+  .drag-gallery__track {
+    display: flex;
+    gap: var(--drag-gap, 1rem);
+    padding-inline: clamp(1rem, 4vw, 4rem);
+  }
+  .drag-gallery__track > :global(*) {
+    flex: 0 0 auto;
+  }
+  .drag-gallery__track :global(img) {
+    pointer-events: none;
+    -webkit-user-drag: none;
+  }
+  .drag-gallery__indicator {
+    position: absolute;
+    bottom: 0.5rem;
+    right: 1rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  @media (hover: none) {
+    .drag-gallery { cursor: default; }
+    .drag-gallery__indicator { display: none; }
+  }
+</style>
+
+<script>
+  function initDragGallery(): void {
+    const galleries = document.querySelectorAll<HTMLElement>('[data-drag-gallery]');
+    if (galleries.length === 0) return;
+    // Skip entirely on touch — native scroll is better.
+    if (typeof window === 'undefined' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    galleries.forEach((gallery) => {
+      if (gallery.dataset.dragInitialized === 'true') return;
+      gallery.dataset.dragInitialized = 'true';
+
+      const viewport = gallery.querySelector<HTMLElement>('.drag-gallery__viewport');
+      if (!viewport) return;
+
+      let isDown = false;
+      let startX = 0;
+      let startScrollLeft = 0;
+      let lastX = 0;
+      let velocity = 0;
+      let rafId = 0;
+
+      const onDown = (e: PointerEvent): void => {
+        isDown = true;
+        gallery.classList.add('is-grabbing');
+        startX = e.clientX;
+        lastX = e.clientX;
+        startScrollLeft = viewport.scrollLeft;
+        velocity = 0;
+        cancelAnimationFrame(rafId);
+        viewport.setPointerCapture?.(e.pointerId);
+      };
+
+      const onMove = (e: PointerEvent): void => {
+        if (!isDown) return;
+        const dx = e.clientX - startX;
+        viewport.scrollLeft = startScrollLeft - dx;
+        velocity = e.clientX - lastX;
+        lastX = e.clientX;
+      };
+
+      const decelerate = (): void => {
+        if (Math.abs(velocity) < 0.3) return;
+        viewport.scrollLeft -= velocity;
+        velocity *= 0.92; // friction
+        rafId = requestAnimationFrame(decelerate);
+      };
+
+      const onUp = (e: PointerEvent): void => {
+        if (!isDown) return;
+        isDown = false;
+        gallery.classList.remove('is-grabbing');
+        viewport.releasePointerCapture?.(e.pointerId);
+        if (Math.abs(velocity) > 2) rafId = requestAnimationFrame(decelerate);
+      };
+
+      viewport.addEventListener('pointerdown', onDown);
+      viewport.addEventListener('pointermove', onMove);
+      viewport.addEventListener('pointerup', onUp);
+      viewport.addEventListener('pointercancel', onUp);
+      viewport.addEventListener('pointerleave', onUp);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initDragGallery, { once: true });
+  } else {
+    initDragGallery();
+  }
+</script>

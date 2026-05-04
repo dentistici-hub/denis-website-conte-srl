@@ -1,0 +1,207 @@
+---
+import type { NavLink } from '../../types/content';
+
+interface Props {
+  brandName: string;
+  links: NavLink[];
+  ctaLabel?: string;
+  ctaHref?: string;
+}
+
+const { brandName, links, ctaLabel = 'Get in Touch', ctaHref = '#contact' } = Astro.props;
+---
+
+<header class="nav" id="nav">
+  <div class="nav__inner container">
+    <a href="/" class="nav__brand display" aria-label={`${brandName} homepage`}>
+      {brandName}
+    </a>
+
+    <button
+      class="nav__burger"
+      id="nav-toggle"
+      aria-expanded="false"
+      aria-controls="nav-overlay"
+      aria-label="Toggle menu"
+    >
+      <span class="nav__burger-line"></span>
+      <span class="nav__burger-line"></span>
+    </button>
+  </div>
+
+  <div class="nav__overlay" id="nav-overlay" aria-hidden="true">
+    <nav class="nav__menu container" aria-label="Main navigation">
+      <ul class="nav__list">
+        {links.map((link, i) => (
+          <li class="nav__item" style={`--index: ${i}`}>
+            <a href={link.href} class="nav__link display">{link.label}</a>
+          </li>
+        ))}
+      </ul>
+      <a href={ctaHref} class="nav__cta">{ctaLabel}</a>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: var(--z-header);
+    padding-block: var(--space-md);
+    transition: background 0.3s var(--ease-out);
+  }
+
+  .nav.is-scrolled {
+    background: color-mix(in srgb, var(--color-bg) 80%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .nav__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .nav__brand {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--color-fg);
+  }
+
+  .nav__burger {
+    position: relative;
+    width: 32px;
+    height: 20px;
+    background: none;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    z-index: calc(var(--z-header) + 1);
+    cursor: pointer;
+  }
+
+  .nav__burger-line {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--color-fg);
+    transition: transform 0.4s var(--ease-out), opacity 0.3s;
+  }
+
+  .nav__burger[aria-expanded="true"] .nav__burger-line:first-child {
+    transform: translateY(9px) rotate(45deg);
+  }
+
+  .nav__burger[aria-expanded="true"] .nav__burger-line:last-child {
+    transform: translateY(-9px) rotate(-45deg);
+  }
+
+  .nav__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-header);
+    background: var(--color-bg);
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s var(--ease-out);
+  }
+
+  .nav__overlay[aria-hidden="false"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .nav__list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    padding: 0;
+    margin: 0;
+  }
+
+  .nav__link {
+    font-size: var(--text-display);
+    font-weight: 700;
+    color: var(--color-fg);
+    opacity: 0;
+    transform: translateY(40px);
+    transition: color 0.3s;
+    display: inline-block;
+    text-decoration: none;
+  }
+
+  .nav__link:hover {
+    color: var(--color-accent);
+  }
+
+  .nav__overlay[aria-hidden="false"] .nav__link {
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+      opacity 0.5s calc(var(--index) * 0.08s) var(--ease-out),
+      transform 0.5s calc(var(--index) * 0.08s) var(--ease-out),
+      color 0.3s;
+  }
+
+  .nav__cta {
+    display: inline-block;
+    margin-top: var(--space-xl);
+    padding: var(--space-sm) var(--space-lg);
+    border: 1px solid var(--color-fg);
+    border-radius: 100px;
+    font-size: var(--text-base);
+    color: var(--color-fg);
+    text-decoration: none;
+    transition: background 0.3s, color 0.3s;
+    opacity: 0;
+  }
+
+  .nav__overlay[aria-hidden="false"] .nav__cta {
+    opacity: 1;
+    transition: opacity 0.5s 0.4s var(--ease-out), background 0.3s, color 0.3s;
+  }
+
+  .nav__cta:hover {
+    background: var(--color-fg);
+    color: var(--color-bg);
+  }
+</style>
+
+<script>
+  const toggle = document.getElementById('nav-toggle')!;
+  const overlay = document.getElementById('nav-overlay')!;
+  const nav = document.getElementById('nav')!;
+  const links = overlay.querySelectorAll('.nav__link, .nav__cta');
+
+  toggle.addEventListener('click', () => {
+    const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!isOpen));
+    overlay.setAttribute('aria-hidden', String(isOpen));
+    document.body.style.overflow = isOpen ? '' : 'hidden';
+  });
+
+  links.forEach((link) => {
+    link.addEventListener('click', () => {
+      toggle.setAttribute('aria-expanded', 'false');
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+    });
+  });
+
+  window.addEventListener(
+    'scroll',
+    () => {
+      nav.classList.toggle('is-scrolled', window.scrollY > 50);
+    },
+    { passive: true },
+  );
+</script>

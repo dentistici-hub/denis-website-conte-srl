@@ -1,0 +1,358 @@
+---
+interface LightboxImage {
+  src: string;
+  alt: string;
+  thumb?: string;
+  width?: number;
+  height?: number;
+}
+
+interface Props {
+  images: LightboxImage[];
+  label?: string;
+  columns?: number;
+}
+
+const { images, label, columns = 3 } = Astro.props;
+const gridId = `lightbox-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<section class="lightbox section" aria-label={label ?? 'Image gallery'}>
+  <div class="container">
+    <div
+      class="lightbox__grid"
+      id={gridId}
+      style={`--cols: ${columns};`}
+      data-lightbox-grid
+    >
+      {images.map((img, i) => (
+        <button
+          type="button"
+          class="lightbox__thumb"
+          data-lightbox-thumb
+          data-index={i}
+          aria-label={`Open image ${i + 1}: ${img.alt}`}
+        >
+          <img
+            src={img.thumb ?? img.src}
+            alt={img.alt}
+            width={img.width}
+            height={img.height}
+            loading="lazy"
+            decoding="async"
+          />
+        </button>
+      ))}
+    </div>
+  </div>
+
+  <div
+    class="lightbox__overlay"
+    data-lightbox-overlay
+    role="dialog"
+    aria-modal="true"
+    aria-hidden="true"
+    aria-label={label ?? 'Image viewer'}
+    tabindex="-1"
+  >
+    <div class="lightbox__stage" data-lightbox-stage>
+      <img class="lightbox__full" data-lightbox-full alt="" />
+    </div>
+
+    <button type="button" class="lightbox__btn lightbox__btn--close" data-lightbox-close aria-label="Close image viewer">
+      <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20">
+        <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" />
+      </svg>
+    </button>
+
+    <button type="button" class="lightbox__btn lightbox__btn--prev" data-lightbox-prev aria-label="Previous image">
+      <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20">
+        <path d="M15 5l-7 7 7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+
+    <button type="button" class="lightbox__btn lightbox__btn--next" data-lightbox-next aria-label="Next image">
+      <svg viewBox="0 0 24 24" aria-hidden="true" width="20" height="20">
+        <path d="M9 5l7 7-7 7" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+      </svg>
+    </button>
+
+    <div class="lightbox__counter" data-lightbox-counter aria-live="polite"></div>
+  </div>
+</section>
+
+<script>
+  type LightboxImage = { src: string; alt: string };
+
+  const initLightbox = (root: HTMLElement) => {
+    const overlay = root.querySelector<HTMLElement>('[data-lightbox-overlay]');
+    const fullImg = root.querySelector<HTMLImageElement>('[data-lightbox-full]');
+    const stage = root.querySelector<HTMLElement>('[data-lightbox-stage]');
+    const counter = root.querySelector<HTMLElement>('[data-lightbox-counter]');
+    const thumbs = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-lightbox-thumb]'));
+    const prevBtn = root.querySelector<HTMLButtonElement>('[data-lightbox-prev]');
+    const nextBtn = root.querySelector<HTMLButtonElement>('[data-lightbox-next]');
+    const closeBtn = root.querySelector<HTMLButtonElement>('[data-lightbox-close]');
+
+    if (!overlay || !fullImg || !stage || !thumbs.length) return;
+
+    const images: LightboxImage[] = thumbs.map((btn) => {
+      const img = btn.querySelector('img');
+      return { src: img?.getAttribute('src') ?? '', alt: img?.getAttribute('alt') ?? '' };
+    });
+    // Prefer full-resolution src where available via data attribute override.
+    thumbs.forEach((btn, i) => {
+      const full = btn.getAttribute('data-full');
+      if (full) images[i].src = full;
+    });
+
+    let currentIndex = 0;
+    let lastFocus: HTMLElement | null = null;
+
+    const focusables = () =>
+      Array.from(
+        overlay.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        )
+      );
+
+    const updateCounter = () => {
+      if (counter) counter.textContent = `${currentIndex + 1} / ${images.length}`;
+    };
+
+    const show = (index: number) => {
+      currentIndex = (index + images.length) % images.length;
+      const img = images[currentIndex];
+      fullImg.src = img.src;
+      fullImg.alt = img.alt;
+      updateCounter();
+    };
+
+    const open = (index: number, fromEl: HTMLElement) => {
+      lastFocus = document.activeElement as HTMLElement;
+      const rect = fromEl.getBoundingClientRect();
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const originX = ((rect.left + rect.width / 2) / vw) * 100;
+      const originY = ((rect.top + rect.height / 2) / vh) * 100;
+      stage.style.transformOrigin = `${originX}% ${originY}%`;
+
+      show(index);
+      overlay.setAttribute('aria-hidden', 'false');
+      overlay.classList.add('is-open');
+      document.body.style.overflow = 'hidden';
+
+      requestAnimationFrame(() => {
+        stage.classList.add('is-active');
+        overlay.focus();
+      });
+    };
+
+    const close = () => {
+      overlay.classList.remove('is-open');
+      stage.classList.remove('is-active');
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      if (lastFocus) lastFocus.focus();
+    };
+
+    thumbs.forEach((btn, i) => {
+      btn.addEventListener('click', () => open(i, btn));
+    });
+
+    prevBtn?.addEventListener('click', () => show(currentIndex - 1));
+    nextBtn?.addEventListener('click', () => show(currentIndex + 1));
+    closeBtn?.addEventListener('click', close);
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) close();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (overlay.getAttribute('aria-hidden') === 'true') return;
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+      } else if (e.key === 'ArrowLeft') {
+        show(currentIndex - 1);
+      } else if (e.key === 'ArrowRight') {
+        show(currentIndex + 1);
+      } else if (e.key === 'Tab') {
+        const f = focusables();
+        if (!f.length) return;
+        const first = f[0];
+        const last = f[f.length - 1];
+        const active = document.activeElement as HTMLElement;
+        if (e.shiftKey && active === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    });
+  };
+
+  document.querySelectorAll<HTMLElement>('.lightbox').forEach(initLightbox);
+</script>
+
+<style>
+  .lightbox {
+    background: var(--color-bg);
+    padding-block: var(--space-xl);
+  }
+
+  .lightbox__grid {
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), 1fr);
+    gap: var(--space-sm);
+  }
+
+  .lightbox__thumb {
+    appearance: none;
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    padding: 0;
+    cursor: pointer;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+    position: relative;
+    transition: transform var(--duration-fast) var(--ease-out),
+      border-color var(--duration-fast) var(--ease-out);
+  }
+
+  .lightbox__thumb:hover,
+  .lightbox__thumb:focus-visible {
+    transform: translateY(-2px);
+    border-color: var(--color-accent);
+    outline: none;
+  }
+
+  .lightbox__thumb:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .lightbox__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .lightbox__overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-overlay);
+    background: rgba(10, 10, 11, 0.96);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--duration-normal) var(--ease-out);
+  }
+
+  .lightbox__overlay.is-open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .lightbox__stage {
+    width: min(92vw, 1400px);
+    height: min(88vh, 900px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: scale(0.05);
+    opacity: 0;
+    transition: transform var(--duration-normal) var(--ease-expo),
+      opacity var(--duration-normal) var(--ease-out);
+  }
+
+  .lightbox__stage.is-active {
+    transform: scale(1);
+    opacity: 1;
+  }
+
+  .lightbox__full {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  .lightbox__btn {
+    position: absolute;
+    appearance: none;
+    background: var(--color-bg-elevated);
+    color: var(--color-fg);
+    border: 1px solid var(--color-border);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .lightbox__btn:hover,
+  .lightbox__btn:focus-visible {
+    background: var(--color-accent);
+    color: var(--color-bg);
+    outline: none;
+  }
+
+  .lightbox__btn--close {
+    top: var(--space-md);
+    right: var(--space-md);
+  }
+
+  .lightbox__btn--prev {
+    left: var(--space-md);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .lightbox__btn--next {
+    right: var(--space-md);
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .lightbox__counter {
+    position: absolute;
+    bottom: var(--space-md);
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    letter-spacing: 0.08em;
+  }
+
+  @media (max-width: 768px) {
+    .lightbox__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .lightbox__btn {
+      width: 40px;
+      height: 40px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lightbox__stage {
+      transition: opacity var(--duration-fast) linear;
+      transform: scale(1);
+    }
+    .lightbox__thumb {
+      transition: none;
+    }
+  }
+</style>

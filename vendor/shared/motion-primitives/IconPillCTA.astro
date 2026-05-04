@@ -1,0 +1,158 @@
+---
+/**
+ * IconPillCTA — a label pill next to a bordered square with an icon. Signature
+ * pattern from First Internet and many current agency sites. The label pill
+ * and the icon square share a border treatment and invert together on hover.
+ *
+ * Two variants:
+ *   - default: both shapes have the same border-radius (pills, 999px)
+ *   - square: the icon pill is a sharp square (0 border-radius)
+ *
+ * Props:
+ *   - href: optional — renders as <a>. Otherwise <button>.
+ *   - icon: string — the SVG icon name from Lucide-style keywords, OR raw
+ *       SVG passed via the `iconSlot` slot. If both given, `iconSlot` wins.
+ *       Built-in icons: 'arrow-right', 'arrow-up-right', 'return', 'plus',
+ *       'play', 'chevron-right'. Default: 'arrow-up-right'.
+ *   - variant: 'pill' | 'square'. Default 'pill'.
+ *   - inverted: boolean. If true, button starts filled. Default false.
+ *   - id, class passthrough.
+ *
+ * Slots:
+ *   - default: label text
+ *   - iconSlot: custom inline SVG (overrides built-in icon)
+ *
+ * Usage:
+ *   <IconPillCTA href="#contact">Scrivici</IconPillCTA>
+ *
+ *   <IconPillCTA href="#work" variant="square" icon="arrow-right">
+ *     Guarda i lavori
+ *   </IconPillCTA>
+ *
+ *   <IconPillCTA href="#demo">
+ *     Prova la demo
+ *     <svg slot="iconSlot" viewBox="0 0 24 24">...</svg>
+ *   </IconPillCTA>
+ */
+type IconName = 'arrow-right' | 'arrow-up-right' | 'return' | 'plus' | 'play' | 'chevron-right';
+interface Props {
+  href?: string;
+  icon?: IconName;
+  variant?: 'pill' | 'square';
+  inverted?: boolean;
+  id?: string;
+  class?: string;
+}
+
+const {
+  href,
+  icon = 'arrow-up-right',
+  variant = 'pill',
+  inverted = false,
+  id,
+  class: className = '',
+} = Astro.props;
+
+const Tag = href ? 'a' : 'button';
+
+// Minimal inline icons — stroke-based, currentColor. 24×24 viewBox.
+const ICONS: Record<IconName, string> = {
+  'arrow-right':   'M5 12h14M13 6l6 6-6 6',
+  'arrow-up-right':'M7 17L17 7M9 7h8v8',
+  'return':        'M9 17l-5-5 5-5M4 12h11a5 5 0 0 1 5 5v2',
+  'plus':          'M12 5v14M5 12h14',
+  'play':          'M8 5l12 7-12 7V5z',
+  'chevron-right': 'M9 18l6-6-6-6',
+};
+---
+
+<Tag
+  class:list={['icon-pill-cta', `icon-pill-cta--${variant}`, inverted && 'is-inverted', className]}
+  href={href}
+  type={!href ? 'button' : undefined}
+  id={id}
+>
+  <span class="icon-pill-cta__label">
+    <slot />
+  </span>
+  <span class="icon-pill-cta__icon" aria-hidden="true">
+    <slot name="iconSlot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d={ICONS[icon]} />
+      </svg>
+    </slot>
+  </span>
+</Tag>
+
+<style>
+  .icon-pill-cta {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0.4rem;
+    background: transparent;
+    border: none;
+    padding: 0;
+    color: inherit;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .icon-pill-cta__label,
+  .icon-pill-cta__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid currentColor;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+  .icon-pill-cta__label {
+    padding: 0.75rem 1.35rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .icon-pill-cta__icon {
+    padding: 0 0.75rem;
+    min-width: 2.75rem;
+  }
+  .icon-pill-cta__icon :global(svg) {
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+  .icon-pill-cta--pill .icon-pill-cta__label,
+  .icon-pill-cta--pill .icon-pill-cta__icon {
+    border-radius: 999px;
+  }
+  .icon-pill-cta--square .icon-pill-cta__icon {
+    border-radius: 0;
+  }
+  .icon-pill-cta--square .icon-pill-cta__label {
+    border-radius: 999px;
+  }
+  /* Hover = fill with current color, invert text */
+  .icon-pill-cta:hover .icon-pill-cta__label,
+  .icon-pill-cta:hover .icon-pill-cta__icon {
+    background-color: currentColor;
+  }
+  .icon-pill-cta:hover .icon-pill-cta__label :global(*),
+  .icon-pill-cta:hover .icon-pill-cta__icon :global(*) {
+    color: var(--color-bg, #fff);
+  }
+  /* Inverted = filled by default */
+  .icon-pill-cta.is-inverted .icon-pill-cta__label,
+  .icon-pill-cta.is-inverted .icon-pill-cta__icon {
+    background-color: currentColor;
+  }
+  .icon-pill-cta.is-inverted .icon-pill-cta__label :global(*),
+  .icon-pill-cta.is-inverted .icon-pill-cta__icon :global(*) {
+    color: var(--color-bg, #fff);
+  }
+  .icon-pill-cta.is-inverted:hover .icon-pill-cta__label,
+  .icon-pill-cta.is-inverted:hover .icon-pill-cta__icon {
+    background-color: transparent;
+  }
+  .icon-pill-cta.is-inverted:hover .icon-pill-cta__label :global(*),
+  .icon-pill-cta.is-inverted:hover .icon-pill-cta__icon :global(*) {
+    color: currentColor;
+  }
+</style>

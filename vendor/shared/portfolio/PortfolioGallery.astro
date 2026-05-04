@@ -1,0 +1,350 @@
+---
+/**
+ * PortfolioGallery — filterable grid with FLIP (First, Last, Invert, Play) layout
+ * animations on filter change.
+ *
+ * Categories are derived from `cases[i].tags[0]` (same convention as
+ * PortfolioFilterable). Items that are filtered out collapse via width/opacity
+ * instead of disappearing instantly, then the remaining items FLIP to their new
+ * slots: we record each visible item's bounding rect BEFORE the layout change,
+ * apply the new layout, then translate items back to their old position and
+ * animate translate(0) in a single frame.
+ *
+ * Reference inspiration: Paul Lewis's FLIP technique + GreenSock Flip plugin
+ * demos. No external libs — pure rAF + transforms.
+ */
+import type { CaseStudy } from '../../types/content';
+
+interface Props {
+  cases: CaseStudy[];
+  sectionTitle?: string;
+  eyebrow?: string;
+  /** Label for the "show everything" filter tab. */
+  allLabel?: string;
+}
+
+const {
+  cases,
+  sectionTitle = 'Gallery',
+  eyebrow = 'Portfolio',
+  allLabel = 'All',
+} = Astro.props;
+
+const ALL_TOKEN = '__all__';
+const categories = [ALL_TOKEN, ...Array.from(new Set(cases.map((c) => c.tags[0]).filter(Boolean)))];
+---
+
+<section class="pgal section" aria-labelledby="pgal-title">
+  <div class="container">
+    <header class="pgal__header" data-animate>
+      {eyebrow && (
+        <div class="pgal__eyebrow">
+          <span class="pgal__eyebrow-line" aria-hidden="true"></span>
+          <span class="pgal__eyebrow-text">{eyebrow}</span>
+        </div>
+      )}
+      <h2 class="pgal__title display" id="pgal-title">{sectionTitle}</h2>
+    </header>
+
+    <div
+      class="pgal__filters"
+      role="group"
+      aria-label={`${sectionTitle} filters`}
+      data-pgal-filters
+    >
+      {categories.map((cat) => (
+        <button
+          type="button"
+          class={`pgal__filter${cat === ALL_TOKEN ? ' is-active' : ''}`}
+          data-filter={cat}
+          aria-pressed={cat === ALL_TOKEN ? 'true' : 'false'}
+        >
+          {cat === ALL_TOKEN ? allLabel : cat}
+        </button>
+      ))}
+    </div>
+
+    <div class="pgal__grid" data-pgal-grid>
+      {cases.map((study, i) => (
+        <article
+          class="pgal__card"
+          data-pgal-item
+          data-filter={study.tags[0] ?? ''}
+          style={`--i: ${i};`}
+        >
+          <div class="pgal__img-wrap">
+            {study.image ? (
+              <img
+                class="pgal__img"
+                src={study.image}
+                alt={study.title}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <div class="pgal__placeholder" aria-hidden="true">
+                <span>{study.client}</span>
+              </div>
+            )}
+          </div>
+          <div class="pgal__body">
+            <span class="pgal__client">{study.client}</span>
+            <h3 class="pgal__card-title display">{study.title}</h3>
+            <p class="pgal__desc">{study.description}</p>
+            <div class="pgal__tags">
+              {study.tags.map((t) => <span class="pgal__tag">{t}</span>)}
+            </div>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<script type="module">
+  const ALL_TOKEN = '__all__';
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  document.querySelectorAll('.pgal').forEach((root) => {
+    const section = root as HTMLElement;
+    const filterBtns = Array.from(section.querySelectorAll<HTMLButtonElement>('[data-pgal-filters] button'));
+    const grid = section.querySelector<HTMLElement>('[data-pgal-grid]');
+    const items = Array.from(section.querySelectorAll<HTMLElement>('[data-pgal-item]'));
+    if (!grid || !items.length) return;
+
+    const applyFilter = (filter: string) => {
+      // 1. FIRST — record visible rects before layout change.
+      const first = new Map<HTMLElement, DOMRect>();
+      items.forEach((el) => {
+        if (!el.classList.contains('is-hidden')) first.set(el, el.getBoundingClientRect());
+      });
+
+      // 2. LAST — mutate layout (toggle is-hidden on items that no longer match).
+      items.forEach((el) => {
+        const cat = el.dataset.filter ?? '';
+        const show = filter === ALL_TOKEN || cat === filter;
+        el.classList.toggle('is-hidden', !show);
+      });
+
+      if (reducedMotion) return;
+
+      // 3. INVERT — translate items back to where they were.
+      requestAnimationFrame(() => {
+        items.forEach((el) => {
+          if (el.classList.contains('is-hidden')) return;
+          const prev = first.get(el);
+          const next = el.getBoundingClientRect();
+          if (!prev) {
+            // Newly revealed item — fade in.
+            el.style.transform = 'scale(0.96)';
+            el.style.opacity = '0';
+          } else {
+            const dx = prev.left - next.left;
+            const dy = prev.top - next.top;
+            if (dx || dy) {
+              el.style.transform = `translate(${dx}px, ${dy}px)`;
+              el.style.opacity = '1';
+            }
+          }
+        });
+
+        // 4. PLAY — remove transforms on the next frame; transition takes over.
+        requestAnimationFrame(() => {
+          items.forEach((el) => {
+            if (el.classList.contains('is-hidden')) return;
+            el.style.transition = 'transform 420ms cubic-bezier(0.2, 1, 0.3, 1), opacity 300ms ease-out';
+            el.style.transform = '';
+            el.style.opacity = '1';
+            const cleanup = () => {
+              el.style.transition = '';
+              el.removeEventListener('transitionend', cleanup);
+            };
+            el.addEventListener('transitionend', cleanup);
+          });
+        });
+      });
+    };
+
+    filterBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const f = btn.dataset.filter || ALL_TOKEN;
+        filterBtns.forEach((b) => {
+          b.classList.remove('is-active');
+          b.setAttribute('aria-pressed', 'false');
+        });
+        btn.classList.add('is-active');
+        btn.setAttribute('aria-pressed', 'true');
+        applyFilter(f);
+      });
+    });
+  });
+</script>
+
+<style>
+  .pgal {
+    background: var(--color-bg);
+    padding-block: var(--space-xl);
+  }
+
+  .pgal__header { margin-bottom: var(--space-lg); }
+
+  .pgal__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .pgal__eyebrow-line { width: 32px; height: 2px; background: var(--color-accent); }
+
+  .pgal__eyebrow-text {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+  }
+
+  .pgal__title {
+    font-size: var(--text-3xl);
+    color: var(--color-fg);
+  }
+
+  .pgal__filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-lg);
+  }
+
+  .pgal__filter {
+    padding: 8px 20px;
+    border: 2px solid var(--color-border);
+    background: transparent;
+    color: var(--color-fg-muted);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition:
+      background var(--duration-fast, 180ms) var(--ease-out, ease),
+      color var(--duration-fast, 180ms) var(--ease-out, ease),
+      border-color var(--duration-fast, 180ms) var(--ease-out, ease);
+  }
+
+  .pgal__filter:hover,
+  .pgal__filter.is-active {
+    background: var(--color-fg);
+    border-color: var(--color-fg);
+    color: var(--color-bg);
+  }
+
+  .pgal__filter:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  .pgal__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .pgal__card {
+    background: var(--color-bg-elevated);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    will-change: transform;
+  }
+
+  .pgal__card.is-hidden {
+    display: none;
+  }
+
+  .pgal__img-wrap {
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+  }
+
+  .pgal__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 600ms var(--ease-out, ease);
+  }
+
+  .pgal__card:hover .pgal__img {
+    transform: scale(1.04);
+  }
+
+  .pgal__placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-card);
+    display: flex;
+    align-items: flex-end;
+    padding: var(--space-md);
+    color: var(--color-fg-faint);
+    font-family: var(--font-display);
+  }
+
+  .pgal__body {
+    padding: var(--space-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .pgal__client {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+  }
+
+  .pgal__card-title {
+    font-size: var(--text-lg);
+    color: var(--color-fg);
+  }
+
+  .pgal__desc {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    line-height: var(--leading-normal);
+  }
+
+  .pgal__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
+    margin-top: var(--space-xs);
+  }
+
+  .pgal__tag {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    background: var(--color-bg-card);
+    color: var(--color-fg-muted);
+    border: 1px solid var(--color-border);
+  }
+
+  @media (min-width: 720px) {
+    .pgal__grid { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (min-width: 1080px) {
+    .pgal__grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pgal__img { transition: none; }
+    .pgal__card:hover .pgal__img { transform: none; }
+  }
+</style>

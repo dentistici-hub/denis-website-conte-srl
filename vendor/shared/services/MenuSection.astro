@@ -1,0 +1,134 @@
+---
+import type { Service } from '../../types/content';
+
+interface Props {
+  services: Service[];
+  eyebrow?: string;
+  title?: string;
+  /** Optional footer note shown under the menu. Omit to hide the block. */
+  note?: string;
+}
+
+const {
+  services,
+  eyebrow = 'The Menu',
+  title = 'Seasonal, always.',
+  note,
+} = Astro.props;
+---
+
+<section class="menu section" id="menu" aria-labelledby="menu-heading">
+  <div class="container">
+    <header class="menu__header">
+      <p class="menu__eyebrow" data-animate>{eyebrow}</p>
+      <h2 class="menu__title display" id="menu-heading" data-split-type="lines" data-split-stagger="0.08">
+        {title}
+      </h2>
+    </header>
+
+    <div class="menu__courses">
+      {services.map((course, i) => (
+        <div class="menu__course" data-animate data-delay={String(i * 0.1)}>
+          <div class="menu__course-inner">
+            <h3 class="menu__course-title display">{course.title}</h3>
+            <div class="menu__divider" aria-hidden="true"></div>
+            <p class="menu__course-desc">{course.description}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {note && (
+      <footer class="menu__footer" data-animate>
+        <p class="menu__note">{note}</p>
+      </footer>
+    )}
+  </div>
+</section>
+
+<style>
+  .menu {
+    background: var(--color-bg);
+  }
+
+  .menu__header {
+    margin-bottom: var(--space-2xl);
+    max-width: 640px;
+  }
+
+  .menu__eyebrow {
+    font-size: var(--text-xs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent-secondary);
+    margin-bottom: var(--space-md);
+  }
+
+  .menu__title {
+    font-size: var(--text-3xl);
+    color: var(--color-fg);
+  }
+
+  .menu__courses {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .menu__course {
+    border-top: 1px solid var(--color-border);
+    padding-block: var(--space-xl);
+  }
+
+  .menu__course:last-child {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .menu__course-inner {
+    display: grid;
+    grid-template-columns: 200px 1px 1fr;
+    gap: var(--space-xl);
+    align-items: start;
+  }
+
+  .menu__course-title {
+    font-size: var(--text-2xl);
+    color: var(--color-fg);
+  }
+
+  .menu__divider {
+    width: 1px;
+    height: 100%;
+    background: var(--color-border);
+    align-self: stretch;
+  }
+
+  .menu__course-desc {
+    color: var(--color-fg-muted);
+    line-height: var(--leading-normal);
+    max-width: 560px;
+    padding-top: 0.3em; /* Align with title baseline */
+  }
+
+  .menu__footer {
+    margin-top: var(--space-xl);
+  }
+
+  .menu__note {
+    font-size: var(--text-sm);
+    color: var(--color-fg-faint);
+    font-style: italic;
+    font-family: var(--font-display);
+    font-weight: 300;
+  }
+
+  @media (max-width: 768px) {
+    .menu__course-inner {
+      grid-template-columns: 1fr;
+      gap: var(--space-md);
+    }
+
+    .menu__divider {
+      display: none;
+    }
+  }
+</style>

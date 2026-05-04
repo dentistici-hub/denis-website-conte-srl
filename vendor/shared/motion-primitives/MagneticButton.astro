@@ -1,0 +1,185 @@
+---
+/**
+ * MagneticButton — a CTA whose inner label drifts toward the cursor while it
+ * hovers within an activation radius. The whole element translates toward
+ * cursor with spring physics; the label moves slightly further so the label
+ * leads the ring.
+ *
+ * Why it works: magnetic interaction adds craft without distraction. The
+ * cursor never "misses" the button in a felt sense — it pulls the button to
+ * meet it. Tiny details like this separate award-grade from template.
+ *
+ * Props:
+ *   - href: optional — renders as <a>. Otherwise <button>.
+ *   - radius: number — activation radius in pixels. Default 120.
+ *   - strength: number — 0..1. How far the button translates at cursor edge.
+ *       Default 0.4 (40% of radius).
+ *   - labelStrength: number — extra multiplier for the inner label.
+ *       Default 1.2 (20% more than the outer shell).
+ *   - duration: seconds — GSAP spring duration. Default 0.6.
+ *   - ease: gsap easing. Default 'power3.out'.
+ *   - class passthrough.
+ *
+ * Usage:
+ *   <MagneticButton href="#contact" class="is-primary">Contattaci</MagneticButton>
+ */
+interface Props {
+  href?: string;
+  radius?: number;
+  strength?: number;
+  labelStrength?: number;
+  duration?: number;
+  ease?: string;
+  class?: string;
+  id?: string;
+}
+
+const {
+  href,
+  radius = 120,
+  strength = 0.4,
+  labelStrength = 1.2,
+  duration = 0.6,
+  ease = 'power3.out',
+  class: className = '',
+  id,
+} = Astro.props;
+
+const config = JSON.stringify({ radius, strength, labelStrength, duration, ease });
+const Tag = href ? 'a' : 'button';
+---
+
+<Tag
+  class:list={['magnetic-btn', className]}
+  data-magnetic={config}
+  href={href}
+  type={!href ? 'button' : undefined}
+  id={id}
+>
+  <span class="magnetic-btn__label">
+    <slot />
+  </span>
+</Tag>
+
+<style>
+  .magnetic-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.9rem 1.6rem;
+    border: 1px solid currentColor;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    text-decoration: none;
+    cursor: pointer;
+    border-radius: 999px;
+    will-change: transform;
+    transition: background-color 0.25s ease, color 0.25s ease;
+  }
+  .magnetic-btn:hover {
+    background-color: currentColor;
+  }
+  .magnetic-btn:hover .magnetic-btn__label {
+    color: var(--color-bg, #fff);
+  }
+  .magnetic-btn__label {
+    position: relative;
+    display: inline-block;
+    pointer-events: none;
+    will-change: transform;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .magnetic-btn,
+    .magnetic-btn__label {
+      transform: none !important;
+    }
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+
+  // Magnetic doesn't use ScrollTrigger but we load gsap once per page anyway.
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  interface MagneticConfig {
+    radius: number;
+    strength: number;
+    labelStrength: number;
+    duration: number;
+    ease: string;
+  }
+
+  function initMagnetic(): void {
+    if (isReducedMotion()) return;
+    // Skip on touch devices — no hover context.
+    if (typeof window === 'undefined' || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    const btns = document.querySelectorAll<HTMLElement>('.magnetic-btn[data-magnetic]');
+    if (btns.length === 0) return;
+
+    btns.forEach((btn) => {
+      if (btn.dataset.magneticInitialized === 'true') return;
+      btn.dataset.magneticInitialized = 'true';
+
+      let cfg: MagneticConfig;
+      try { cfg = JSON.parse(btn.dataset.magnetic || '{}'); } catch { return; }
+
+      const label = btn.querySelector<HTMLElement>('.magnetic-btn__label');
+
+      const outerTo = {
+        x: gsap.quickTo(btn, 'x', { duration: cfg.duration, ease: cfg.ease }),
+        y: gsap.quickTo(btn, 'y', { duration: cfg.duration, ease: cfg.ease }),
+      };
+      const labelTo = label
+        ? {
+          x: gsap.quickTo(label, 'x', { duration: cfg.duration, ease: cfg.ease }),
+          y: gsap.quickTo(label, 'y', { duration: cfg.duration, ease: cfg.ease }),
+        }
+        : null;
+
+      const onMove = (event: PointerEvent): void => {
+        const rect = btn.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = event.clientX - cx;
+        const dy = event.clientY - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > cfg.radius) return;
+
+        const falloff = 1 - dist / cfg.radius;
+        const tx = dx * cfg.strength * falloff;
+        const ty = dy * cfg.strength * falloff;
+
+        outerTo.x(tx);
+        outerTo.y(ty);
+        if (labelTo) {
+          labelTo.x(tx * cfg.labelStrength);
+          labelTo.y(ty * cfg.labelStrength);
+        }
+      };
+
+      const onLeave = (): void => {
+        outerTo.x(0);
+        outerTo.y(0);
+        if (labelTo) {
+          labelTo.x(0);
+          labelTo.y(0);
+        }
+      };
+
+      // We listen on window for smoother activation — user approaches from outside.
+      window.addEventListener('pointermove', onMove);
+      btn.addEventListener('pointerleave', onLeave);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initMagnetic, { once: true });
+  } else {
+    initMagnetic();
+  }
+</script>

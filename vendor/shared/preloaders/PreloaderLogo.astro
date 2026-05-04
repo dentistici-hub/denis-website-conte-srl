@@ -1,0 +1,90 @@
+---
+interface Props {
+  brandName?: string;
+}
+const { brandName = '' } = Astro.props;
+---
+
+<div class="preloader" id="preloader" aria-hidden="true">
+  <div class="preloader__circle" aria-hidden="true"></div>
+  {brandName && (
+    <span class="preloader__brand display">{brandName}</span>
+  )}
+</div>
+
+<style>
+  .preloader {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-preloader);
+    background: var(--color-bg-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .preloader__circle {
+    position: absolute;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: var(--color-accent);
+    transform: translate(-50%, -50%);
+    top: 50%;
+    left: 50%;
+  }
+
+  .preloader__brand {
+    position: relative;
+    z-index: 1;
+    font-size: var(--text-2xl);
+    color: white;
+    opacity: 0;
+    letter-spacing: 0.1em;
+  }
+</style>
+
+<script>
+  import '@scripts/gsap-init';
+  import { gsap } from '@scripts/gsap-init';
+
+  const preloader = document.getElementById('preloader');
+  const brand = preloader?.querySelector('.preloader__brand');
+  const circle = preloader?.querySelector('.preloader__circle') as HTMLElement;
+
+  if (preloader && circle) {
+    const size = Math.max(window.innerWidth, window.innerHeight) * 2.5;
+
+    const tl = gsap.timeline({
+      onComplete: () => {
+        preloader.remove();
+        document.querySelectorAll('[data-animate]').forEach((el) => {
+          (el as HTMLElement).style.visibility = 'visible';
+        });
+        window.dispatchEvent(new CustomEvent('preloader:complete'));
+      },
+    });
+
+    if (brand) {
+      tl.to(brand, { opacity: 1, duration: 0.4, delay: 0.1 });
+    }
+
+    tl.to(circle, {
+      width: size,
+      height: size,
+      duration: 0.7,
+      ease: 'power2.in',
+    }, brand ? '+=0.3' : '+=0.2');
+
+    if (brand) {
+      tl.to(brand, { opacity: 0, duration: 0.2 }, '-=0.4');
+    }
+
+    tl.to(preloader, {
+      opacity: 0,
+      duration: 0.4,
+      ease: 'power2.out',
+    });
+  }
+</script>

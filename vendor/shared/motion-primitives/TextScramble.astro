@@ -1,0 +1,162 @@
+---
+/**
+ * TextScramble — randomizes characters in the slotted text then settles onto
+ * the final string. Triggered on hover (default) or on viewport enter.
+ *
+ * Used for headlines, eyebrows, and CTA labels that should feel "live" — the
+ * text looks like it's being typed or locked-in as you interact with it.
+ *
+ * Props:
+ *   - trigger: 'hover' | 'view' | 'both'. Default 'hover'.
+ *   - duration: seconds for full scramble-to-settle. Default 0.8.
+ *   - chars: string — pool of characters to scramble through. Default
+ *       alphanumeric + symbols.
+ *   - once: only fire once per trigger type. Default false for hover, true
+ *       for view.
+ *   - start: ScrollTrigger start for 'view' mode. Default 'top 85%'.
+ *   - tag: HTML tag to render. Default 'span'.
+ *   - class passthrough.
+ *
+ * Usage:
+ *   <TextScramble trigger="hover">Scopri di più</TextScramble>
+ *   <TextScramble trigger="view" tag="h2">About the studio</TextScramble>
+ *
+ * Note: the slot must be PLAIN TEXT — no nested elements. Pass strings only.
+ */
+type Trigger = 'hover' | 'view' | 'both';
+
+interface Props {
+  trigger?: Trigger;
+  duration?: number;
+  chars?: string;
+  once?: boolean;
+  start?: string;
+  tag?: string;
+  class?: string;
+}
+
+const {
+  trigger = 'hover',
+  duration = 0.8,
+  chars = '!<>-_\\/[]{}—=+*^?#_abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ',
+  once = trigger === 'view',
+  start = 'top 85%',
+  tag: Tag = 'span',
+  class: className = '',
+} = Astro.props;
+
+const config = JSON.stringify({ trigger, duration, chars, once, start });
+---
+
+<Tag class:list={['text-scramble', className]} data-scramble={config}>
+  <slot />
+</Tag>
+
+<style>
+  .text-scramble {
+    display: inline-block;
+    white-space: pre-wrap;
+  }
+</style>
+
+<script>
+  import gsap from 'gsap';
+  import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+  const w = window as unknown as { __mpGsap?: boolean };
+  if (!w.__mpGsap) {
+    gsap.registerPlugin(ScrollTrigger);
+    w.__mpGsap = true;
+  }
+
+  const isReducedMotion = (): boolean =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  interface ScrambleConfig {
+    trigger: 'hover' | 'view' | 'both';
+    duration: number;
+    chars: string;
+    once: boolean;
+    start: string;
+  }
+
+  function runScramble(el: HTMLElement, cfg: ScrambleConfig): void {
+    const target = el.dataset.scrambleOriginal ?? el.textContent ?? '';
+    if (!el.dataset.scrambleOriginal) {
+      el.dataset.scrambleOriginal = target;
+    }
+    if (el.dataset.scrambleRunning === 'true') return;
+    el.dataset.scrambleRunning = 'true';
+
+    const chars = cfg.chars;
+    const frameTotal = Math.max(8, Math.round(cfg.duration * 30));
+    let frame = 0;
+    const queue: Array<{ from: string; to: string; lockAt: number }> = [];
+    const oldText = target;
+    const maxLen = target.length;
+
+    for (let i = 0; i < maxLen; i++) {
+      const from = oldText[i] || '';
+      const to = target[i] || '';
+      const lockAt = Math.floor((i / maxLen) * (frameTotal - 6)) + Math.floor(Math.random() * 6);
+      queue.push({ from, to, lockAt });
+    }
+
+    const tick = (): void => {
+      let output = '';
+      let settled = 0;
+      for (const item of queue) {
+        if (frame >= item.lockAt) {
+          output += item.to;
+          settled += 1;
+        } else {
+          output += chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      el.textContent = output;
+      if (settled === queue.length) {
+        el.dataset.scrambleRunning = 'false';
+        return;
+      }
+      frame += 1;
+      requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
+  }
+
+  function initTextScramble(): void {
+    const els = document.querySelectorAll<HTMLElement>('.text-scramble[data-scramble]');
+    if (els.length === 0) return;
+    if (isReducedMotion()) return;
+
+    els.forEach((el) => {
+      if (el.dataset.scrambleInitialized === 'true') return;
+      el.dataset.scrambleInitialized = 'true';
+
+      let cfg: ScrambleConfig;
+      try { cfg = JSON.parse(el.dataset.scramble || '{}'); } catch { return; }
+      // Cache original text before any run overwrites it.
+      el.dataset.scrambleOriginal = el.textContent ?? '';
+
+      if (cfg.trigger === 'hover' || cfg.trigger === 'both') {
+        el.addEventListener('pointerenter', () => runScramble(el, cfg));
+      }
+
+      if (cfg.trigger === 'view' || cfg.trigger === 'both') {
+        ScrollTrigger.create({
+          trigger: el,
+          start: cfg.start,
+          once: cfg.once,
+          onEnter: () => runScramble(el, cfg),
+        });
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initTextScramble, { once: true });
+  } else {
+    initTextScramble();
+  }
+</script>

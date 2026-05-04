@@ -1,0 +1,120 @@
+---
+/**
+ * ColorFloodScroll — as the user scrolls through sections marked with
+ * `data-flood-bg` and/or `data-flood-fg`, this component smoothly swaps the
+ * page background AND foreground colors via CSS custom properties on <body>.
+ *
+ * This is the "color chapters" pattern — the page itself changes personality
+ * per section. Done well, it's memorable. Done poorly, it's disorienting, so
+ * limit to 3-4 flood changes per page.
+ *
+ * How to use:
+ *   1. Place <ColorFloodScroll /> ONCE per page (typically at the top of
+ *      <body>, right after the nav).
+ *   2. Add `data-flood-bg="#RRGGBB"` (and optionally `data-flood-fg="#RRGGBB"`)
+ *      to ANY section on the page. When that section enters the viewport
+ *      center, the page bg/fg will tween to those values.
+ *   3. The component writes to `--page-bg` / `--page-fg` on <body>. Your
+ *      global CSS should read those — e.g. `body { background-color: var(--page-bg); color: var(--page-fg); transition: background-color .5s, color .5s; }`.
+ *
+ * Props:
+ *   - defaultBg: string — the page bg to use outside any marked section.
+ *       Default `'var(--color-bg, #ffffff)'`.
+ *   - defaultFg: string — same for fg. Default `'var(--color-fg, #141414)'`.
+ *   - transitionMs: number — CSS transition duration in ms. Default 500.
+ *   - rootMargin: string — IntersectionObserver rootMargin. Default
+ *       `'-45% 0px -45% 0px'` (fire when section crosses viewport middle).
+ */
+interface Props {
+  defaultBg?: string;
+  defaultFg?: string;
+  transitionMs?: number;
+  rootMargin?: string;
+}
+
+const {
+  defaultBg = 'var(--color-bg, #ffffff)',
+  defaultFg = 'var(--color-fg, #141414)',
+  transitionMs = 500,
+  rootMargin = '-45% 0px -45% 0px',
+} = Astro.props;
+
+const config = JSON.stringify({ defaultBg, defaultFg, transitionMs, rootMargin });
+---
+
+<span data-color-flood={config} aria-hidden="true"></span>
+
+<style is:global>
+  body {
+    transition: background-color var(--page-bg-transition, 500ms) ease,
+                color var(--page-fg-transition, 500ms) ease;
+    background-color: var(--page-bg, #ffffff);
+    color: var(--page-fg, #141414);
+  }
+</style>
+
+<script>
+  interface FloodConfig {
+    defaultBg: string;
+    defaultFg: string;
+    transitionMs: number;
+    rootMargin: string;
+  }
+
+  function initColorFlood(): void {
+    const marker = document.querySelector<HTMLElement>('[data-color-flood]');
+    if (!marker || marker.dataset.floodInitialized === 'true') return;
+    marker.dataset.floodInitialized = 'true';
+
+    let cfg: FloodConfig;
+    try { cfg = JSON.parse(marker.dataset.colorFlood || '{}'); } catch { return; }
+
+    document.body.style.setProperty('--page-bg', cfg.defaultBg);
+    document.body.style.setProperty('--page-fg', cfg.defaultFg);
+    document.body.style.setProperty('--page-bg-transition', `${cfg.transitionMs}ms`);
+    document.body.style.setProperty('--page-fg-transition', `${cfg.transitionMs}ms`);
+
+    const zones = document.querySelectorAll<HTMLElement>('[data-flood-bg], [data-flood-fg]');
+    if (zones.length === 0) return;
+
+    const applyZone = (el: HTMLElement): void => {
+      const bg = el.dataset.floodBg;
+      const fg = el.dataset.floodFg;
+      if (bg) document.body.style.setProperty('--page-bg', bg);
+      if (fg) document.body.style.setProperty('--page-fg', fg);
+    };
+
+    const resetZone = (): void => {
+      document.body.style.setProperty('--page-bg', cfg.defaultBg);
+      document.body.style.setProperty('--page-fg', cfg.defaultFg);
+    };
+
+    // Track which zone is currently "active" to avoid flicker when zones overlap.
+    const active = new Set<HTMLElement>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) active.add(entry.target as HTMLElement);
+          else active.delete(entry.target as HTMLElement);
+        });
+        // Apply the latest-added zone if any, otherwise reset.
+        if (active.size === 0) {
+          resetZone();
+        } else {
+          const last = [...active][active.size - 1];
+          if (last) applyZone(last);
+        }
+      },
+      { rootMargin: cfg.rootMargin, threshold: 0 },
+    );
+
+    zones.forEach((zone) => observer.observe(zone));
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initColorFlood, { once: true });
+  } else {
+    initColorFlood();
+  }
+</script>

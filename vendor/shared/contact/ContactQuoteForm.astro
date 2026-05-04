@@ -1,0 +1,480 @@
+---
+import type { SiteConfig } from '../../types/content';
+
+interface Props {
+  site: SiteConfig;
+  eyebrow?: string;
+  title?: string;
+  subtitle?: string;
+  submitLabel?: string;
+  /** Dropdown options for the project-type / request-type field. */
+  projectTypes?: string[];
+  /** Label shown above the project-type select. */
+  projectTypeLabel?: string;
+  /** Placeholder for the project-type empty option. */
+  projectTypePlaceholder?: string;
+  /** Office-hours line shown in the info block. */
+  officeHours?: string;
+  /** WhatsApp number in international format, digits only (e.g. "390298765432"). If omitted, the WhatsApp CTA is hidden. */
+  whatsappNumber?: string;
+  /** WhatsApp CTA label. */
+  whatsappLabel?: string;
+  /** Form action URL. If omitted, form has no action (no-op submit). */
+  action?: string;
+  /** Form method. Defaults to "POST". */
+  method?: string;
+  /** Required GDPR consent text (shown next to a required checkbox). If omitted, checkbox is hidden. */
+  gdprConsentLabel?: string;
+  /** Optional URL for the privacy policy, linked inside the GDPR label if '{privacy}' placeholder is present. */
+  privacyHref?: string;
+}
+
+const {
+  site,
+  eyebrow = 'Get in Touch',
+  title = 'Request a Quote',
+  subtitle = "Tell us about your project. We'll respond within one business day.",
+  submitLabel = 'Send Request',
+  projectTypes = [
+    'Commercial Building',
+    'Industrial Facility',
+    'Residential Development',
+    'Renovation & Restoration',
+    'Other',
+  ],
+  projectTypeLabel = 'Project Type *',
+  projectTypePlaceholder = 'Select a project type',
+  officeHours = 'Mon-Fri: 9:00-18:00',
+  whatsappNumber,
+  whatsappLabel = 'Chat on WhatsApp',
+  action,
+  method = 'POST',
+  gdprConsentLabel,
+  privacyHref,
+} = Astro.props;
+---
+
+<section class="contact section" id="contact" aria-labelledby="contact-title">
+  <div class="container">
+    <div class="contact__inner">
+
+      <!-- Form side -->
+      <div class="contact__form-side">
+        <div class="contact__eyebrow" data-animate>
+          <span class="contact__eyebrow-line"></span>
+          <span class="contact__eyebrow-text">{eyebrow}</span>
+        </div>
+        <h2 class="contact__title display" id="contact-title" data-animate>
+          {title}
+        </h2>
+        <p class="contact__subtitle" data-animate>
+          {subtitle}
+        </p>
+
+        <form class="contact__form" data-animate novalidate action={action} method={action ? method : undefined}>
+          <div class="contact__form-row">
+            <div class="contact__field">
+              <label class="contact__label" for="name">Full Name *</label>
+              <input class="contact__input" type="text" id="name" name="name" autocomplete="name" required placeholder="Mario Rossi" />
+            </div>
+            <div class="contact__field">
+              <label class="contact__label" for="company">Company</label>
+              <input class="contact__input" type="text" id="company" name="company" autocomplete="organization" placeholder="Acme S.p.A." />
+            </div>
+          </div>
+
+          <div class="contact__form-row">
+            <div class="contact__field">
+              <label class="contact__label" for="email">Email *</label>
+              <input class="contact__input" type="email" id="email" name="email" autocomplete="email" required placeholder="mario@acme.it" />
+            </div>
+            <div class="contact__field">
+              <label class="contact__label" for="phone">Phone</label>
+              <input class="contact__input" type="tel" id="phone" name="phone" autocomplete="tel" placeholder="+39 02..." />
+            </div>
+          </div>
+
+          <div class="contact__field">
+            <label class="contact__label" for="project-type">{projectTypeLabel}</label>
+            <select class="contact__input contact__select" id="project-type" name="project-type" required>
+              <option value="" disabled selected>{projectTypePlaceholder}</option>
+              {projectTypes.map((type) => (
+                <option value={type}>{type}</option>
+              ))}
+            </select>
+          </div>
+
+          <div class="contact__field">
+            <label class="contact__label" for="message">Project Description *</label>
+            <textarea
+              class="contact__input contact__textarea"
+              id="message"
+              name="message"
+              rows="5"
+              required
+              placeholder="Describe your project: location, size, timeline, budget..."
+            ></textarea>
+          </div>
+
+          {/* Honeypot — hidden from humans, spam bots will fill it. Server must reject submissions where this is non-empty. */}
+          <div class="contact__honeypot" aria-hidden="true">
+            <label for="contact-company-url">Do not fill this field.</label>
+            <input type="text" id="contact-company-url" name="company_url" tabindex="-1" autocomplete="off" />
+          </div>
+
+          {gdprConsentLabel && (
+            <label class="contact__consent">
+              <input type="checkbox" name="gdpr_consent" required />
+              <span set:html={
+                privacyHref
+                  ? gdprConsentLabel.replace('{privacy}', `<a href="${privacyHref}" target="_blank" rel="noopener noreferrer">privacy policy</a>`)
+                  : gdprConsentLabel
+              } />
+            </label>
+          )}
+
+          <button type="submit" class="contact__submit">
+            {submitLabel}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </button>
+
+          <p class="contact__form-note">* Required fields. We never share your data.</p>
+        </form>
+      </div>
+
+      <!-- Info side -->
+      <div class="contact__info-side" data-animate>
+        <div class="contact__info-card">
+          <h3 class="contact__info-title display">Contact Us Directly</h3>
+
+          <div class="contact__info-items">
+            <div class="contact__info-item">
+              <div class="contact__info-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.07 1.18 2 2 0 012.06 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/>
+                </svg>
+              </div>
+              <div>
+                <p class="contact__info-label">Phone</p>
+                <a href={`tel:${site.contact.phone?.replace(/\s/g, '')}`} class="contact__info-value contact__info-phone">
+                  {site.contact.phone}
+                </a>
+              </div>
+            </div>
+
+            <div class="contact__info-item">
+              <div class="contact__info-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </div>
+              <div>
+                <p class="contact__info-label">Email</p>
+                <a href={`mailto:${site.contact.email}`} class="contact__info-value">
+                  {site.contact.email}
+                </a>
+              </div>
+            </div>
+
+            <div class="contact__info-item">
+              <div class="contact__info-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div>
+                <p class="contact__info-label">Office</p>
+                <address class="contact__info-value" style="font-style: normal;">
+                  {site.contact.address}<br />
+                  {site.contact.city}, {site.contact.country}
+                </address>
+              </div>
+            </div>
+
+            <div class="contact__info-item">
+              <div class="contact__info-icon" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div>
+                <p class="contact__info-label">Office Hours</p>
+                <p class="contact__info-value">{officeHours}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- WhatsApp CTA -->
+        {whatsappNumber && (
+        <a
+          href={`https://wa.me/${whatsappNumber.replace(/\D/g, '')}`}
+          class="contact__whatsapp"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Contact us on WhatsApp"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          <span>{whatsappLabel}</span>
+        </a>
+        )}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .contact__inner {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+
+  .contact__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .contact__eyebrow-line {
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .contact__eyebrow-text {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+  }
+
+  .contact__title {
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-sm);
+  }
+
+  .contact__subtitle {
+    color: var(--color-fg-muted);
+    margin-bottom: var(--space-lg);
+    line-height: var(--leading-normal);
+  }
+
+  .contact__form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .contact__form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-md);
+  }
+
+  .contact__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .contact__label {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-fg);
+  }
+
+  .contact__input {
+    padding: 12px 16px;
+    border: 2px solid var(--color-border);
+    background: var(--color-bg-elevated);
+    font-size: var(--text-base);
+    font-family: var(--font-body);
+    color: var(--color-fg);
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+
+  .contact__input:focus {
+    outline: none;
+    border-color: var(--color-accent);
+  }
+
+  .contact__input::placeholder {
+    color: var(--color-fg-faint);
+  }
+
+  .contact__select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6B6B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+  }
+
+  .contact__textarea {
+    resize: vertical;
+    min-height: 140px;
+  }
+
+  .contact__honeypot {
+    position: absolute;
+    left: -10000px;
+    top: auto;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+  }
+
+  .contact__consent {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: var(--text-xs, 0.8rem);
+    color: var(--color-fg-muted);
+    line-height: 1.5;
+    cursor: pointer;
+  }
+  .contact__consent input[type="checkbox"] {
+    margin-top: 2px;
+    flex-shrink: 0;
+    accent-color: var(--color-accent);
+  }
+  .contact__consent a {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+
+  .contact__submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 32px;
+    background: var(--color-accent);
+    color: white;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: none;
+    cursor: pointer;
+    font-family: var(--font-body);
+    transition: background 0.2s;
+    align-self: flex-start;
+  }
+
+  .contact__submit:hover {
+    background: var(--color-accent-dark);
+  }
+
+  .contact__form-note {
+    font-size: var(--text-xs);
+    color: var(--color-fg-faint);
+    margin-top: calc(-1 * var(--space-xs));
+  }
+
+  /* Info side */
+  .contact__info-card {
+    background: var(--color-bg-dark);
+    padding: var(--space-lg);
+    color: white;
+  }
+
+  .contact__info-title {
+    font-size: var(--text-xl);
+    color: white;
+    margin-bottom: var(--space-lg);
+  }
+
+  .contact__info-items {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .contact__info-item {
+    display: flex;
+    gap: var(--space-md);
+    align-items: flex-start;
+  }
+
+  .contact__info-icon {
+    color: var(--color-accent);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .contact__info-label {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+
+  .contact__info-value {
+    font-size: var(--text-base);
+    color: white;
+    text-decoration: none;
+    line-height: var(--leading-snug);
+  }
+
+  .contact__info-phone {
+    font-size: var(--text-lg);
+    font-weight: 700;
+    color: var(--color-accent-hover);
+    transition: color 0.2s;
+  }
+
+  .contact__info-phone:hover {
+    color: white;
+  }
+
+  .contact__whatsapp {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-top: var(--space-md);
+    padding: 14px 24px;
+    background: #25D366;
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: var(--text-sm);
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+
+  .contact__whatsapp:hover {
+    background: #1ebe5d;
+  }
+
+  @media (min-width: 640px) {
+    .contact__form-row {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .contact__inner {
+      grid-template-columns: 1fr 400px;
+      align-items: start;
+    }
+  }
+</style>

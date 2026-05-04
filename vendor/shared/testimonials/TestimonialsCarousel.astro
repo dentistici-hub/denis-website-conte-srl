@@ -1,0 +1,303 @@
+---
+import type { Testimonial } from '../../types/content';
+
+interface Props {
+  /** Array of testimonials to cycle through. Preferred. */
+  testimonials?: Testimonial[];
+  /** Single testimonial. Backwards-compatible fallback; normalized into an array. */
+  testimonial?: Testimonial;
+  /** Auto-advance interval in ms. Defaults to 6000. */
+  interval?: number;
+}
+
+const { testimonials, testimonial, interval = 6000 } = Astro.props;
+
+// Normalize to a single array. Filter out nullish so we never render empty cards.
+const items: Testimonial[] = (testimonials && testimonials.length
+  ? testimonials
+  : testimonial
+    ? [testimonial]
+    : []
+).filter(Boolean);
+
+const hasMultiple = items.length > 1;
+const uid = `tc-${Math.random().toString(36).slice(2, 9)}`;
+---
+
+<section
+  class="testimonials"
+  aria-labelledby={`${uid}-label`}
+  data-testimonials-carousel
+  data-interval={interval}
+>
+  <h2 id={`${uid}-label`} class="sr-only">Testimonials</h2>
+  <div class="container">
+    <div class="testimonials__inner" data-animate>
+      <div class="testimonials__quote-mark display" aria-hidden="true">"</div>
+
+      <div
+        class="testimonials__stage"
+        aria-live="polite"
+        aria-atomic="true"
+        data-stage
+      >
+        {items.map((t, i) => (
+          <blockquote
+            class="testimonials__quote"
+            data-slide
+            data-index={i}
+            aria-hidden={i === 0 ? 'false' : 'true'}
+            data-active={i === 0 ? 'true' : 'false'}
+          >
+            <p class="testimonials__text">{t.quote}</p>
+            <footer class="testimonials__attribution">
+              <div class="testimonials__author-block">
+                <div class="testimonials__author-avatar" aria-hidden="true">
+                  <span class="display">{t.author.split(' ').map((n) => n[0]).join('')}</span>
+                </div>
+                <div>
+                  <cite class="testimonials__author">{t.author}</cite>
+                  <p class="testimonials__role">{t.role}, {t.company}</p>
+                </div>
+              </div>
+            </footer>
+          </blockquote>
+        ))}
+      </div>
+
+      {hasMultiple && (
+        <div class="testimonials__dots" role="tablist" aria-label="Select testimonial" data-dots>
+          {items.map((_, i) => (
+            <button
+              type="button"
+              class="testimonials__dot"
+              role="tab"
+              aria-selected={i === 0 ? 'true' : 'false'}
+              aria-label={`Testimonial ${i + 1} of ${items.length}`}
+              data-dot
+              data-index={i}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .testimonials {
+    background: var(--color-bg-dark, var(--color-bg-elevated));
+    padding-block: var(--space-xl);
+  }
+
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .testimonials__inner {
+    position: relative;
+    max-width: 800px;
+    margin-inline: auto;
+    padding-top: var(--space-lg);
+  }
+
+  .testimonials__quote-mark {
+    position: absolute;
+    top: 0;
+    left: -20px;
+    font-size: clamp(6rem, 12vw, 12rem);
+    line-height: 1;
+    color: var(--color-accent);
+    opacity: 0.2;
+    pointer-events: none;
+    text-transform: none;
+  }
+
+  .testimonials__stage {
+    position: relative;
+    z-index: 1;
+  }
+
+  .testimonials__quote {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 600ms var(--ease-smooth, ease), visibility 0s linear 600ms;
+  }
+
+  .testimonials__quote[data-active='true'] {
+    position: relative;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 600ms var(--ease-smooth, ease), visibility 0s linear 0s;
+  }
+
+  .testimonials__text {
+    font-size: var(--text-xl);
+    color: white;
+    line-height: var(--leading-snug);
+    margin-bottom: var(--space-lg);
+    font-style: normal;
+  }
+
+  .testimonials__attribution {
+    display: flex;
+    align-items: center;
+  }
+
+  .testimonials__author-block {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .testimonials__author-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .testimonials__author-avatar span {
+    font-size: var(--text-sm);
+    color: white;
+  }
+
+  .testimonials__author {
+    display: block;
+    font-size: var(--text-base);
+    font-weight: 700;
+    color: white;
+    font-style: normal;
+  }
+
+  .testimonials__role {
+    font-size: var(--text-sm);
+    color: rgba(255, 255, 255, 0.55);
+    margin-top: 2px;
+  }
+
+  .testimonials__dots {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    gap: var(--space-xs, 0.5rem);
+    margin-top: var(--space-lg);
+  }
+
+  .testimonials__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    transition: background 200ms ease, transform 200ms ease;
+  }
+
+  .testimonials__dot[aria-selected='true'] {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+    transform: scale(1.2);
+  }
+
+  .testimonials__dot:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .testimonials__quote {
+      transition: none;
+    }
+  }
+</style>
+
+<script>
+  // Module scope; no window globals.
+  const roots = document.querySelectorAll<HTMLElement>('[data-testimonials-carousel]');
+
+  roots.forEach((root) => {
+    const slides = Array.from(root.querySelectorAll<HTMLElement>('[data-slide]'));
+    const dots = Array.from(root.querySelectorAll<HTMLButtonElement>('[data-dot]'));
+    if (slides.length <= 1) return;
+
+    const intervalMs = Number(root.dataset.interval) || 6000;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+    let current = 0;
+    let timer: number | null = null;
+    let paused = false;
+
+    const show = (next: number) => {
+      if (next === current) return;
+      slides[current].setAttribute('data-active', 'false');
+      slides[current].setAttribute('aria-hidden', 'true');
+      slides[next].setAttribute('data-active', 'true');
+      slides[next].setAttribute('aria-hidden', 'false');
+      dots.forEach((d, i) => d.setAttribute('aria-selected', i === next ? 'true' : 'false'));
+      current = next;
+    };
+
+    const advance = () => show((current + 1) % slides.length);
+
+    const start = () => {
+      if (timer !== null || paused || reduceMotion.matches) return;
+      timer = window.setInterval(advance, intervalMs);
+    };
+
+    const stop = () => {
+      if (timer !== null) {
+        clearInterval(timer);
+        timer = null;
+      }
+    };
+
+    const pause = () => {
+      paused = true;
+      stop();
+    };
+
+    const resume = () => {
+      paused = false;
+      start();
+    };
+
+    root.addEventListener('mouseenter', pause);
+    root.addEventListener('mouseleave', resume);
+    root.addEventListener('focusin', pause);
+    root.addEventListener('focusout', (e) => {
+      // Only resume when focus fully leaves the component.
+      if (!root.contains(e.relatedTarget as Node)) resume();
+    });
+
+    dots.forEach((dot) => {
+      dot.addEventListener('click', () => {
+        const idx = Number(dot.dataset.index) || 0;
+        show(idx);
+      });
+    });
+
+    reduceMotion.addEventListener('change', () => {
+      if (reduceMotion.matches) stop();
+      else start();
+    });
+
+    start();
+  });
+</script>

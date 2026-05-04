@@ -1,0 +1,28 @@
+---
+import type { Service } from '../../types/content';
+interface Props { services: Service[]; sectionTitle?: string; }
+const { services, sectionTitle = 'What We Do' } = Astro.props;
+---
+<section class="services section" id="services" aria-labelledby="services-title">
+  <div class="container">
+    <h2 class="services__title display" id="services-title" data-animate>{sectionTitle}</h2>
+    <div class="services__grid">
+      {services.map((service, i) => (
+        <article class="services__card" data-animate style={`--index: ${i}`}>
+          <span class="services__number">{String(i + 1).padStart(2, '0')}</span>
+          <h3 class="services__card-title">{service.title}</h3>
+          <p class="services__card-desc">{service.description}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+<style>
+  .services__title { font-size: var(--text-3xl); margin-bottom: var(--space-xl); }
+  .services__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-lg); }
+  .services__card { padding: var(--space-lg); background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: 12px; transition: border-color 0.3s var(--ease-out), transform 0.3s var(--ease-out); }
+  .services__card:hover { border-color: var(--color-accent); transform: translateY(-4px); }
+  .services__number { display: block; font-family: var(--font-display); font-size: var(--text-sm); color: var(--color-accent); margin-bottom: var(--space-md); font-weight: 700; }
+  .services__card-title { font-family: var(--font-display); font-size: var(--text-xl); font-weight: 700; margin-bottom: var(--space-sm); }
+  .services__card-desc { color: var(--color-fg-muted); line-height: var(--leading-normal); }
+</style>

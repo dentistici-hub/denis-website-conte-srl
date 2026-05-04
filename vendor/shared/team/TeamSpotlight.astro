@@ -1,0 +1,45 @@
+---
+import type { TeamMember } from '../../types/content';
+interface Props { team: TeamMember[]; sectionTitle?: string; }
+const { team, sectionTitle = 'The Team' } = Astro.props;
+
+const withBase = (p: string | undefined): string | undefined => {
+  if (!p) return p;
+  if (/^(https?:\/\/|data:)/.test(p)) return p;
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return p.startsWith('/') ? `${base}${p}` : `${base}/${p}`;
+};
+---
+<section class="team section" id="about" aria-labelledby="team-title">
+  <div class="container">
+    <h2 class="team__title display" id="team-title" data-animate>{sectionTitle}</h2>
+    <div class="team__grid">
+      {team.map((member, i) => (
+        <article class="team__member" data-animate style={`--index: ${i}`}>
+          <div class="team__photo">
+            {member.image ? (
+              <img class="team__photo-img" src={withBase(member.image)} alt={`${member.name} — ${member.role}`} loading="lazy" decoding="async" />
+            ) : (
+              <div class="team__photo-placeholder">
+                <span>{member.name.split(' ').map(n => n[0]).join('')}</span>
+              </div>
+            )}
+          </div>
+          <h3 class="team__name">{member.name}</h3>
+          <p class="team__role">{member.role}</p>
+          <p class="team__bio">{member.bio}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+<style>
+  .team__title { font-size: var(--text-3xl); margin-bottom: var(--space-xl); }
+  .team__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-xl); }
+  .team__photo { aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; margin-bottom: var(--space-md); position: relative; }
+  .team__photo-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+  .team__photo-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--color-bg-card); font-family: var(--font-display); font-size: var(--text-3xl); font-weight: 700; color: var(--color-fg-faint); }
+  .team__name { font-family: var(--font-display); font-size: var(--text-lg); font-weight: 700; }
+  .team__role { font-size: var(--text-sm); color: var(--color-accent); margin-bottom: var(--space-sm); }
+  .team__bio { color: var(--color-fg-muted); font-size: var(--text-sm); line-height: var(--leading-normal); }
+</style>

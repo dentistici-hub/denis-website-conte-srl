@@ -1,0 +1,168 @@
+---
+interface Certification {
+  name: string;
+  description?: string;
+}
+
+interface Props {
+  foundingYear?: string | number;
+  sectionTitle?: string;
+  story?: string;
+  certifications?: Certification[];
+}
+
+const {
+  foundingYear,
+  sectionTitle = 'Built on a Foundation of Trust',
+  story,
+  certifications = [],
+} = Astro.props;
+---
+
+<section class="heritage section" id="about" aria-labelledby="heritage-title">
+  <div class="container">
+    <div class="heritage__inner">
+      <!-- Year display -->
+      {foundingYear && (
+        <div class="heritage__year-col" data-animate>
+          <div class="heritage__year-block">
+            <span class="heritage__since">Since</span>
+            <span class="heritage__year display">{foundingYear}</span>
+            <div class="heritage__year-bar"></div>
+          </div>
+        </div>
+      )}
+
+      <!-- Story -->
+      <div class="heritage__content">
+        <div class="heritage__eyebrow" data-animate>
+          <span class="heritage__eyebrow-line"></span>
+          <span class="heritage__eyebrow-text">Our Heritage</span>
+        </div>
+        <h2 class="heritage__title display" id="heritage-title" data-animate>{sectionTitle}</h2>
+        {story && <p class="heritage__story" data-animate>{story}</p>}
+
+        {certifications.length > 0 && (
+          <div class="heritage__credentials" data-animate>
+            {certifications.map((cert) => (
+              <div class="heritage__credential">
+                <span class="heritage__credential-icon" aria-hidden="true">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/>
+                  </svg>
+                </span>
+                <span>{cert.name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .heritage__inner {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-xl);
+  }
+
+  .heritage__year-col {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .heritage__year-block {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .heritage__since {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--color-accent);
+    margin-bottom: var(--space-xs);
+  }
+
+  .heritage__year {
+    font-size: clamp(5rem, 10vw, 10rem);
+    color: var(--color-fg);
+    line-height: 1;
+    opacity: 0.08;
+  }
+
+  .heritage__year-bar {
+    width: 60px;
+    height: 4px;
+    background: var(--color-accent);
+    margin-top: var(--space-md);
+  }
+
+  .heritage__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .heritage__eyebrow-line {
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .heritage__eyebrow-text {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+  }
+
+  .heritage__title {
+    font-size: var(--text-3xl);
+    margin-bottom: var(--space-md);
+    max-width: 18ch;
+  }
+
+  .heritage__story {
+    color: var(--color-fg-muted);
+    line-height: var(--leading-normal);
+    max-width: 600px;
+    margin-bottom: var(--space-lg);
+  }
+
+  .heritage__credentials {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .heritage__credential {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-fg);
+  }
+
+  .heritage__credential-icon {
+    display: flex;
+    align-items: center;
+    color: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  @media (min-width: 900px) {
+    .heritage__inner {
+      grid-template-columns: 280px 1fr;
+      align-items: start;
+    }
+  }
+</style>

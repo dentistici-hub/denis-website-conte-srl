@@ -1,0 +1,158 @@
+---
+import type { SiteConfig } from '../../types/content';
+
+interface Props {
+  site: SiteConfig;
+  /** Short eyebrow text. */
+  eyebrow?: string;
+  /** Lines shown in the hours block, in display order. */
+  hours?: string[];
+  /** Primary CTA label on the reservation button. */
+  ctaLabel?: string;
+  /** Optional walk-in / aperitivo note shown at the bottom. */
+  walkinNote?: string;
+}
+
+const {
+  site,
+  eyebrow = 'Come to the table',
+  hours = [],
+  ctaLabel = 'Reserve a Table',
+  walkinNote,
+} = Astro.props;
+---
+
+<section class="reserve section" id="reserve" aria-labelledby="reserve-heading">
+  <div class="container">
+    <div class="reserve__inner">
+      <p class="reserve__eyebrow" data-animate>{eyebrow}</p>
+
+      <h2 class="reserve__name display" id="reserve-heading" data-split-type="lines" data-split-stagger="0.07">
+        {site.name}
+      </h2>
+
+      <address class="reserve__address" data-animate>
+        {site.contact.address}, {site.contact.city}
+      </address>
+
+      {hours.length > 0 && (
+        <div class="reserve__hours" data-animate>
+          {hours.map((line) => <p class="reserve__hours-line">{line}</p>)}
+        </div>
+      )}
+
+      <div class="reserve__actions" data-animate>
+        <a href={`mailto:${site.contact.email}`} class="reserve__cta">
+          {ctaLabel}
+        </a>
+        {site.contact.phone && (
+          <a href={`tel:${site.contact.phone}`} class="reserve__phone">
+            {site.contact.phone}
+          </a>
+        )}
+      </div>
+
+      {walkinNote && (
+        <p class="reserve__walkin" data-animate>{walkinNote}</p>
+      )}
+    </div>
+  </div>
+</section>
+
+<style>
+  .reserve {
+    background: var(--color-bg-elevated);
+    text-align: center;
+  }
+
+  .reserve__inner {
+    max-width: 640px;
+    margin-inline: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-lg);
+  }
+
+  .reserve__eyebrow {
+    font-size: var(--text-xs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent-secondary);
+  }
+
+  .reserve__name {
+    font-size: var(--text-display);
+    color: var(--color-fg);
+    line-height: var(--leading-tight);
+  }
+
+  .reserve__address {
+    font-style: normal;
+    font-size: var(--text-base);
+    color: var(--color-fg-muted);
+  }
+
+  .reserve__hours {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .reserve__hours-line {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    letter-spacing: 0.04em;
+  }
+
+  .reserve__hours-line:first-child {
+    color: var(--color-fg);
+    font-weight: 500;
+    margin-bottom: var(--space-xs);
+  }
+
+  .reserve__actions {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-md);
+  }
+
+  .reserve__cta {
+    display: inline-block;
+    padding: 1em 2.5em;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    font-size: var(--text-xs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-radius: 2px;
+    transition:
+      background var(--duration-fast) var(--ease-out),
+      color var(--duration-fast) var(--ease-out);
+  }
+
+  .reserve__cta:hover {
+    background: var(--color-accent);
+    color: var(--color-bg);
+  }
+
+  .reserve__phone {
+    font-size: var(--text-sm);
+    color: var(--color-fg-muted);
+    letter-spacing: 0.04em;
+    transition: color var(--duration-fast);
+  }
+
+  .reserve__phone:hover {
+    color: var(--color-fg);
+  }
+
+  .reserve__walkin {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: var(--text-base);
+    color: var(--color-fg-faint);
+  }
+</style>

@@ -1,0 +1,178 @@
+---
+import type { TeamMember } from '../../types/content';
+
+interface Props {
+  team: TeamMember[];
+  sectionTitle?: string;
+}
+
+const { team, sectionTitle = 'The Team Behind Every Project' } = Astro.props;
+
+const withBase = (p: string | undefined): string | undefined => {
+  if (!p) return p;
+  if (/^(https?:\/\/|data:)/.test(p)) return p;
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return p.startsWith('/') ? `${base}${p}` : `${base}/${p}`;
+};
+---
+
+<section class="team section" aria-labelledby="team-title">
+  <div class="container">
+    <div class="team__header" data-animate>
+      <div class="team__eyebrow">
+        <span class="team__eyebrow-line"></span>
+        <span class="team__eyebrow-text">Our People</span>
+      </div>
+      <h2 class="team__title display" id="team-title">{sectionTitle}</h2>
+    </div>
+
+    <div class="team__grid">
+      {team.map((member, i) => (
+        <article class="team__member" data-animate style={`--index: ${i}`}>
+          <div class="team__photo">
+            {member.image ? (
+              <img
+                class="team__photo-img"
+                src={withBase(member.image)}
+                alt={`${member.name} — ${member.role}`}
+                loading="lazy"
+                decoding="async"
+              />
+            ) : (
+              <>
+                <div class="team__photo-bg" aria-hidden="true"></div>
+                <div class="team__photo-initials display" aria-hidden="true">
+                  {member.name.split(' ').map((n) => n[0]).join('')}
+                </div>
+              </>
+            )}
+          </div>
+
+          <div class="team__member-body">
+            <h3 class="team__member-name display">{member.name}</h3>
+            <p class="team__member-role">{member.role}</p>
+            <p class="team__member-bio">{member.bio}</p>
+          </div>
+        </article>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .team__header {
+    margin-bottom: var(--space-xl);
+  }
+
+  .team__eyebrow {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    margin-bottom: var(--space-md);
+  }
+
+  .team__eyebrow-line {
+    display: block;
+    width: 32px;
+    height: 2px;
+    background: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .team__eyebrow-text {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--color-accent);
+  }
+
+  .team__title {
+    font-size: var(--text-3xl);
+    max-width: 18ch;
+  }
+
+  .team__grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-lg);
+  }
+
+  .team__member {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .team__photo {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    background: var(--color-bg-dark);
+  }
+
+  .team__photo-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .team__photo-bg {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #1a2a3a 0%, #2c3e50 100%);
+  }
+
+  .team__photo-initials {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-3xl);
+    color: rgba(255, 255, 255, 0.15);
+    pointer-events: none;
+  }
+
+  .team__member-body {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .team__member-name {
+    font-size: var(--text-xl);
+    color: var(--color-fg);
+  }
+
+  .team__member-role {
+    font-size: var(--text-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-accent);
+  }
+
+  .team__member-bio {
+    font-size: var(--text-base);
+    color: var(--color-fg-muted);
+    line-height: var(--leading-normal);
+    margin-top: var(--space-xs);
+  }
+
+  @media (min-width: 640px) {
+    .team__grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .team__grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+</style>

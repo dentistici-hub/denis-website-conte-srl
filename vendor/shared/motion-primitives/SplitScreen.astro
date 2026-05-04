@@ -1,0 +1,115 @@
+---
+/**
+ * SplitScreen — full-viewport 50/50 layout where the left side is sticky
+ * (typically an image or headline) and the right side scrolls through
+ * content. Classic editorial/portfolio move.
+ *
+ * Inverts the relationship: instead of content stacking, half the viewport
+ * stays still while the other half advances. Grounds the reader.
+ *
+ * Props:
+ *   - stickySide: 'left' | 'right' — which side stays fixed. Default 'left'.
+ *   - ratio: '50/50' | '40/60' | '60/40' | '33/66' | '66/33'. Default '50/50'.
+ *   - minHeight: CSS length. Default '100vh'.
+ *   - gap: CSS length between columns. Default '0' (touching panels).
+ *   - class passthrough.
+ *
+ * Slots:
+ *   - sticky: the side that sticks
+ *   - scroll: the side that scrolls
+ *
+ * Usage:
+ *   <SplitScreen stickySide="left" ratio="40/60">
+ *     <div slot="sticky" class="hero-image">
+ *       <img src="/images/studio.jpg" alt="Studio interior" />
+ *     </div>
+ *     <div slot="scroll" class="case-studies">
+ *       <article>Case 1</article>
+ *       <article>Case 2</article>
+ *       <article>Case 3</article>
+ *     </div>
+ *   </SplitScreen>
+ */
+type Ratio = '50/50' | '40/60' | '60/40' | '33/66' | '66/33';
+interface Props {
+  stickySide?: 'left' | 'right';
+  ratio?: Ratio;
+  minHeight?: string;
+  gap?: string;
+  class?: string;
+}
+
+const {
+  stickySide = 'left',
+  ratio = '50/50',
+  minHeight = '100vh',
+  gap = '0',
+  class: className = '',
+} = Astro.props;
+
+const RATIO_MAP: Record<Ratio, string> = {
+  '50/50': '1fr 1fr',
+  '40/60': '2fr 3fr',
+  '60/40': '3fr 2fr',
+  '33/66': '1fr 2fr',
+  '66/33': '2fr 1fr',
+};
+const gridCols = RATIO_MAP[ratio];
+---
+
+<section
+  class:list={['split-screen', `split-screen--sticky-${stickySide}`, className]}
+  style={`--split-cols: ${gridCols}; --split-min: ${minHeight}; --split-gap: ${gap};`}
+>
+  <aside class="split-screen__sticky">
+    <div class="split-screen__sticky-inner">
+      <slot name="sticky" />
+    </div>
+  </aside>
+  <div class="split-screen__scroll">
+    <slot name="scroll" />
+  </div>
+</section>
+
+<style>
+  .split-screen {
+    display: grid;
+    grid-template-columns: var(--split-cols, 1fr 1fr);
+    gap: var(--split-gap, 0);
+    min-height: var(--split-min, 100vh);
+    align-items: start;
+  }
+  .split-screen--sticky-right .split-screen__sticky {
+    order: 2;
+  }
+  .split-screen__sticky {
+    position: relative;
+    min-height: var(--split-min, 100vh);
+  }
+  .split-screen__sticky-inner {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .split-screen__scroll {
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 800px) {
+    .split-screen {
+      grid-template-columns: 1fr;
+    }
+    .split-screen__sticky-inner {
+      position: static;
+      height: auto;
+      min-height: 50vh;
+    }
+    .split-screen--sticky-right .split-screen__sticky {
+      order: 0;
+    }
+  }
+</style>

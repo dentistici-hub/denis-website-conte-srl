@@ -1,0 +1,139 @@
+---
+import type { TeamMember } from '../../types/content';
+
+interface Props {
+  team: TeamMember[];
+  /** Short label above the name (e.g. "The chef", "Il fondatore"). */
+  eyebrow?: string;
+}
+
+const { team, eyebrow = 'The person' } = Astro.props;
+const chef = team[0];
+---
+
+{chef && (
+  <section class="about section" aria-labelledby="about-heading">
+    <div class="container">
+      <div class="about__inner">
+        <div class="about__portrait-wrap" data-animate>
+          {/* Placeholder — replace with real chef photo */}
+          <div class="about__portrait-placeholder">
+            <span class="about__portrait-label">{chef.name}</span>
+          </div>
+        </div>
+
+        <div class="about__content">
+          <p class="about__eyebrow" data-animate>{eyebrow}</p>
+          <h2 class="about__name display" id="about-heading" data-split-type="lines" data-split-stagger="0.07">
+            {chef.name}
+          </h2>
+          <p class="about__role" data-animate>{chef.role}</p>
+          <p class="about__bio" data-animate>{chef.bio}</p>
+        </div>
+      </div>
+    </div>
+  </section>
+)}
+
+<style>
+  .about {
+    background: var(--color-bg-elevated);
+  }
+
+  .about__inner {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2xl);
+    align-items: center;
+  }
+
+  .about__portrait-wrap {
+    aspect-ratio: 3 / 4;
+    overflow: hidden;
+    border-radius: 2px;
+    /* Clip path reveals on scroll — animated via JS */
+    clip-path: circle(0% at 50% 50%);
+    transition: clip-path 1.4s var(--ease-out);
+  }
+
+  .about__portrait-wrap.is-revealed {
+    clip-path: circle(75% at 50% 50%);
+  }
+
+  .about__portrait-placeholder {
+    width: 100%;
+    height: 100%;
+    background: var(--color-bg-card);
+    display: flex;
+    align-items: flex-end;
+    padding: var(--space-lg);
+  }
+
+  .about__portrait-label {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-weight: 300;
+    font-size: var(--text-base);
+    color: var(--color-fg-faint);
+  }
+
+  .about__content {
+    padding-block: var(--space-lg);
+  }
+
+  .about__eyebrow {
+    font-size: var(--text-xs);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--color-accent-secondary);
+    margin-bottom: var(--space-md);
+  }
+
+  .about__name {
+    font-size: var(--text-3xl);
+    color: var(--color-fg);
+    margin-bottom: var(--space-sm);
+  }
+
+  .about__role {
+    font-size: var(--text-sm);
+    letter-spacing: 0.08em;
+    color: var(--color-fg-muted);
+    margin-bottom: var(--space-lg);
+  }
+
+  .about__bio {
+    color: var(--color-fg-muted);
+    line-height: var(--leading-normal);
+    max-width: 480px;
+  }
+
+  @media (max-width: 768px) {
+    .about__inner {
+      grid-template-columns: 1fr;
+    }
+
+    .about__bio {
+      max-width: none;
+    }
+  }
+</style>
+
+<script>
+  // Clip-path circle reveal on scroll
+  const portrait = document.querySelector<HTMLElement>('.about__portrait-wrap');
+  if (portrait) {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            portrait.classList.add('is-revealed');
+            observer.unobserve(portrait);
+          }
+        });
+      },
+      { threshold: 0.3 },
+    );
+    observer.observe(portrait);
+  }
+</script>

@@ -1,0 +1,28 @@
+---
+import type { SiteConfig } from '../../types/content';
+interface Props { site: SiteConfig; heading?: string; subheading?: string; }
+const { site, heading = "Let's Build Something", subheading = 'Have a project in mind? We would love to hear about it.' } = Astro.props;
+---
+<section class="contact section" id="contact" aria-labelledby="contact-title">
+  <div class="container">
+    <h2 class="contact__title display" id="contact-title" data-animate>{heading}</h2>
+    <p class="contact__sub" data-animate>{subheading}</p>
+    <div class="contact__actions" data-animate>
+      <a href={`mailto:${site.contact.email}`} class="contact__button contact__button--primary">{site.contact.email}</a>
+      {site.contact.phone && (
+        <a href={`tel:${site.contact.phone.replace(/\s/g, '')}`} class="contact__button contact__button--secondary">{site.contact.phone}</a>
+      )}
+    </div>
+  </div>
+</section>
+<style>
+  .contact { text-align: center; padding-block: var(--space-2xl); }
+  .contact__title { font-size: var(--text-display); margin-bottom: var(--space-md); }
+  .contact__sub { font-size: var(--text-xl); color: var(--color-fg-muted); margin-bottom: var(--space-xl); }
+  .contact__actions { display: flex; gap: var(--space-md); justify-content: center; flex-wrap: wrap; }
+  .contact__button { padding: var(--space-sm) var(--space-lg); border-radius: 100px; font-size: var(--text-lg); transition: background 0.3s, color 0.3s, border-color 0.3s; }
+  .contact__button--primary { background: var(--color-accent); color: #fff; }
+  .contact__button--primary:hover { background: var(--color-accent-hover); }
+  .contact__button--secondary { border: 1px solid var(--color-fg-faint); color: var(--color-fg); }
+  .contact__button--secondary:hover { border-color: var(--color-accent); color: var(--color-accent); }
+</style>

@@ -20,5 +20,14 @@ export default defineConfig({
   base: '/denis-website-conte-srl',
   integrations: [sitemap()],
   i18n: { defaultLocale: 'it', locales: ['it'] },
-  vite: { resolve: { alias: motionAliases } },
+  vite: {
+    resolve: {
+      alias: [
+        { find: '@shared', replacement: resolve(__dirname, 'vendor/shared') },
+        { find: '@components', replacement: resolve(__dirname, 'src/components') },
+        { find: '@scripts', replacement: resolve(__dirname, 'src/scripts') },
+        ...motionAliases,
+      ],
+    },
+  },
 });
